@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cinema</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>CINEMA</h1>
+    <p>Buy tickets and popcorn here</p>
+
+    <nav>
+        {% if session.get('user') %}
+            <span>Hi, {{ session['user']['name'] }}</span> ·
+            <a href="{{ url_for('my_bookings') }}">My bookings</a> ·
+            <a href="{{ url_for('logout') }}">Log out</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Log in</a> ·
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </nav>
+
+    <h2>Now playing</h2>
+    <ul>
+        {% for m in movies %}
+            <li>
+                <a href="{{ url_for('movie_detail', movie_id=m.id) }}">{{ m.title }}</a>
+                — {{ "%.2f"|format(m.price) }} €
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

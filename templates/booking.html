@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book — {{ movie.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Book: {{ movie.title }}</h1>
+
+    <form method="POST">
+        <fieldset>
+            <legend>Seats</legend>
+            {% for s in ['A1','A2','A3','B1','B2','B3'] %}
+                <label><input type="checkbox" name="seat" value="{{ s }}"> {{ s }}</label>
+            {% endfor %}
+        </fieldset>
+
+        <fieldset>
+            <legend>Food & drinks</legend>
+            {% for item in food %}
+                <label>
+                    <input type="checkbox" name="food" value="{{ item.id }}">
+                    {{ item.name }} — {{ "%.2f"|format(item.price) }} €
+                </label><br>
+            {% endfor %}
+        </fieldset>
+
+        <button type="submit">Confirm booking</button>
+    </form>
+    <a href="{{ url_for('index') }}">← Back</a>
+</body>
+</html>
