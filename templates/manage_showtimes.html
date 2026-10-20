@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin — Showtimes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Admin — Showtimes</h1>
+    <nav>
+        <a href="{{ url_for('manage_movies') }}">Movies</a> ·
+        <a href="{{ url_for('manage_food') }}">Food</a> ·
+        <a href="{{ url_for('manage_showtimes') }}">Showtimes</a> ·
+        <a href="{{ url_for('index') }}">← Site</a>
+    </nav>
+    <table>
+        <tr>
+            <th>Movie</th><th>Date</th><th>Time</th><th>Room</th>
+        </tr>
+        {% for s in showtimes %}
+            <tr>
+                <td>{{ s.movie.title }}</td>
+                <td>{{ s.date }}</td>
+                <td>{{ s.time.strftime('%H:%M') }}</td>
+                <td>{{ s.screen.name }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
