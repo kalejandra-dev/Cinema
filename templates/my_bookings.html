@@ -9,11 +9,20 @@
     <h1>My bookings</h1>
 
     {% if bookings %}
-        <ul>
+        <table>
+            <tr>
+                <th>Movie</th><th>Date</th><th>Time</th><th>Seats</th><th>Total</th>
+            </tr>
             {% for b in bookings %}
-                <li>Movie #{{ b.movie_id }} — seats {{ b.seats|join(', ') }}</li>
+                <tr>
+                    <td>{{ b.showtime.movie.title }}</td>
+                    <td>{{ b.showtime.date }}</td>
+                    <td>{{ b.showtime.time.strftime('%H:%M') }}</td>
+                    <td>{{ b.num_seats }}</td>
+                    <td>{{ "%.2f"|format(b.total_price) }} €</td>
+                </tr>
             {% endfor %}
-        </ul>
+        </table>
     {% else %}
         <p>You have no bookings yet.</p>
     {% endif %}

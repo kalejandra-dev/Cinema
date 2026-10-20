@@ -43,28 +43,26 @@ HTML RULES (Amiga HTML)
       manage_movies.html -> movies
       manage_food.html   -> food
 
-DATABASE CONTRACT (Amigo BD) — expected in model.py
+DATABASE (model.py, SQLAlchemy — DONE by Amigo BD)
 ---------------------------------------------------
-Classes (SQLAlchemy):
-    Movie    (id, title, price, duration, description)
-    Showtime (id, movie_id, start_time, room)
-    Food     (id, name, price)
-    User     (id, name, email, password_hash, is_admin)
-    Booking  (id, user_id, showtime_id, seats, created_at)
+Models in model.py:
+    Movie       (id, title, synopsis, duration, age_rating, poster, genre)
+    Screen      (id, name, capacity)
+    Showtime    (id, movie_id, screen_id, date, time)
+    User        (id, email, password_hash, role=UserRole)
+    UserRole    enum (customer, management_staff)
+    Booking     (id, user_id, showtime_id, num_seats, total_price, booking_date)
+    FoodItem    (id, name, description, price, available)
+    Package     (id, name, description, ticket_quantity, price)
+    PackageItem (package_id, food_item_id, quantity)
+    BookingItem (booking_id, food_item_id, quantity, price)
+    BookingPackage (booking_id, package_id, quantity, price)
+    TicketPrice (day_of_week, price)
 
-Functions I will call from mainpage.py:
-    get_movies()                               -> list[Movie]
-    get_movie(id)                              -> Movie | None
-    get_showtimes(movie_id)                    -> list[Showtime]
-    get_food_catalog()                         -> list[Food]
-    create_user(name, email, password)         -> User
-    authenticate(email, password)              -> User | None
-    create_booking(user_id, showtime_id,
-                   seats, food_items)          -> Booking
-    get_bookings(user_id)                      -> list[Booking]
-    (admin) add_movie / edit_movie / delete_movie
-    (admin) add_food   / edit_food   / delete_food
-    (admin) add_showtime / edit_showtime / delete_showtime
+mainpage.py uses db.session directly (no helper functions):
+    db.session.scalars(db.select(Movie)).all()
+    db.session.get(Movie, movie_id)
+    db.session.add(obj); db.session.commit()
 
 HOW TO RUN
 ----------
