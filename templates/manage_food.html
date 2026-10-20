@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin — Food</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Admin — Food</h1>
+    <nav>
+        <a href="{{ url_for('manage_movies') }}">Movies</a> ·
+        <a href="{{ url_for('manage_food') }}">Food</a> ·
+        <a href="{{ url_for('manage_showtimes') }}">Showtimes</a> ·
+        <a href="{{ url_for('index') }}">← Site</a>
+    </nav>
+    <ul>
+        {% for item in food %}
+            <li>{{ item.name }} — {{ "%.2f"|format(item.price) }} €
+                {% if not item.available %}(unavailable){% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
