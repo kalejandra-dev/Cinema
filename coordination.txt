@@ -1,0 +1,77 @@
+Cinema project — coordination
+=============================
+
+STACK (agreed)
+--------------
+- Backend: Flask (Python)
+- Database: SQLAlchemy (model.py)
+
+FOLDER LAYOUT (please respect this, Flask requires it)
+------------------------------------------------------
+Cinema/
+├── mainpage.py          <-- backend (Yo)
+├── model.py             <-- SQLAlchemy models + helpers (Amigo BD)
+├── templates/           <-- ALL .html files go HERE  (Amiga HTML)
+│   ├── index.html
+│   ├── login.html
+│   ├── register.html
+│   ├── movie_detail.html
+│   ├── booking.html
+│   ├── my_bookings.html
+│   ├── manage_movies.html
+│   ├── manage_food.html
+│   └── manage_showtimes.html
+└── static/              <-- CSS, images, JS go HERE   (Amiga HTML)
+    └── style.css
+
+HTML RULES (Amiga HTML)
+-----------------------
+- Put every .html inside templates/.
+- Put style.css, images, JS inside static/.
+- Link the CSS like this (NOT a plain href):
+      <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+- Links between pages: use {{ url_for('<route_name>') }}
+      Log in       -> {{ url_for('login') }}
+      Register     -> {{ url_for('register') }}
+      Movie X      -> {{ url_for('movie_detail', movie_id=m.id) }}
+      Book movie X -> {{ url_for('booking', movie_id=m.id) }}
+- Data you can use inside the templates:
+      index.html         -> movies            (list of {id,title,price,duration})
+      movie_detail.html  -> movie             (one movie dict)
+      booking.html       -> movie, food       (food = list of {id,name,price})
+      my_bookings.html   -> bookings          (list)
+      manage_movies.html -> movies
+      manage_food.html   -> food
+
+DATABASE (model.py, SQLAlchemy — DONE by Amigo BD)
+---------------------------------------------------
+Models in model.py:
+    Movie       (id, title, synopsis, duration, age_rating, poster, genre)
+    Screen      (id, name, capacity)
+    Showtime    (id, movie_id, screen_id, date, time)
+    User        (id, email, password_hash, role=UserRole)
+    UserRole    enum (customer, management_staff)
+    Booking     (id, user_id, showtime_id, num_seats, total_price, booking_date)
+    FoodItem    (id, name, description, price, available)
+    Package     (id, name, description, ticket_quantity, price)
+    PackageItem (package_id, food_item_id, quantity)
+    BookingItem (booking_id, food_item_id, quantity, price)
+    BookingPackage (booking_id, package_id, quantity, price)
+    TicketPrice (day_of_week, price)
+
+mainpage.py uses db.session directly (no helper functions):
+    db.session.scalars(db.select(Movie)).all()
+    db.session.get(Movie, movie_id)
+    db.session.add(obj); db.session.commit()
+
+HOW TO RUN
+----------
+    pip install -r requirements.txt
+    python mainpage.py
+    open http://127.0.0.1:5000
+
+BRANCHES / MERGING
+------------------
+- Amiga HTML works on branch feature/front-dev, commits HTML inside templates/.
+- Amigo BD works on branch database, commits model.py.
+- I (mainpage) merge both branches into mainpage, test, then open PR to main.
