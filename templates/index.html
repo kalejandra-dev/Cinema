@@ -8,3 +8,46 @@
   
   <!-- Aquí iría tu maquetación de las películas -->
 {% endblock %}
+<<<<<<< HEAD
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cinema</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>CINEMA</h1>
+    <p>Buy tickets and popcorn here</p>
+
+    <nav>
+        {% if session.get('user') %}
+            <span>Hi, {{ session['user']['email'] }}</span> ·
+            <a href="{{ url_for('my_bookings') }}">My bookings</a> ·
+            {% if session['user']['is_admin'] %}
+                <a href="{{ url_for('manage_movies') }}">Admin</a> ·
+            {% endif %}
+            <a href="{{ url_for('logout') }}">Log out</a>
+        {% else %}
+            <a href="{{ url_for('login') }}">Log in</a> ·
+            <a href="{{ url_for('register') }}">Register</a>
+        {% endif %}
+    </nav>
+
+    {% with messages = get_flashed_messages() %}
+        {% for m in messages %}<p class="flash">{{ m }}</p>{% endfor %}
+    {% endwith %}
+
+    <h2>Now playing</h2>
+    <ul>
+        {% for m in movies %}
+            <li>
+                <a href="{{ url_for('movie_detail', movie_id=m.id) }}">{{ m.title }}</a>
+                — {{ m.genre }} · {{ m.duration }} min · {{ m.age_rating }}
+            </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
+>>>>>>> 54542da06da5263cb968d04c57b8dbc17d661ae9
