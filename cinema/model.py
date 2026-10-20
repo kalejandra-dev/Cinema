@@ -7,9 +7,8 @@ from decimal import Decimal
 
 from sqlalchemy import String, ForeignKey, Enum, Numeric, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from flask_sqlalchemy import SQLAlchemy
 
-db = SQLAlchemy()
+from . import db
 
 
 
