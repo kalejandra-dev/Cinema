@@ -3,49 +3,35 @@ Cinema - main Flask application.
 
 My part (backend): routes, forms, session, glue between templates and model.
 
-Expected from model.py (friend 2, SQLAlchemy):
-    - Movie, Showtime, Food, User, Booking   (classes)
-    - get_movies(), get_movie(id)
-    - get_showtimes(movie_id)
-    - get_food_catalog()
-    - create_user(name, email, password)
-    - authenticate(email, password) -> User | None
-    - create_booking(user_id, showtime_id, seats, food_items) -> Booking
-    - get_bookings(user_id)
-    - admin helpers: add_movie, edit_movie, delete_movie, same for food & showtime
-
-While model.py is empty I use fake data so the server already runs.
+Models (SQLAlchemy, in model.py): Movie, Screen, Showtime, User (role),
+Booking, FoodItem, Package, PackageItem, BookingItem, BookingPackage,
+TicketPrice.
 """
+import datetime
+from decimal import Decimal
 from functools import wraps
+
+import sqlalchemy as sa
 from flask import (
     Flask, render_template, request, redirect, url_for, session, flash, abort
 )
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# When friend 2 has model.py ready, swap the fake data for real queries:
-# from model import (
-#     get_movies, get_movie, get_showtimes, get_food_catalog,
-#     create_user, authenticate, create_booking, get_bookings,
-# )
+from model import (
+    db,
+    Movie, Screen, Showtime,
+    User, UserRole,
+    Booking, FoodItem, Package, TicketPrice,
+)
+
 
 app = Flask(__name__)
 app.secret_key = "change-me-in-production"
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///cinema.db"
+db.init_app(app)
 
 
-# ------------------------------------------------------------------ fake data
-FAKE_MOVIES = [
-    {"id": 1, "title": "Dune: Part Two",   "price": 8.50, "duration": 166},
-    {"id": 2, "title": "Oppenheimer",      "price": 7.00, "duration": 180},
-    {"id": 3, "title": "Spider-Verse",     "price": 7.50, "duration": 140},
-]
-FAKE_FOOD = [
-    {"id": 1, "name": "Popcorn (M)", "price": 4.00},
-    {"id": 2, "name": "Soda",        "price": 2.50},
-    {"id": 3, "name": "Nachos",      "price": 5.00},
-]
-FAKE_BOOKINGS = []  # list of {user_email, movie_id, seats, food}
-
-
-# -------------------------------------------------------------------- helpers
+# --------------------------------------------------------------- helpers
 def login_required(view):
     @wraps(view)
     def wrapper(*args, **kwargs):
@@ -66,31 +52,42 @@ def admin_required(view):
     return wrapper
 
 
-# ---------------------------------------------------------------- public pages
+def ticket_price_for(showtime):
+    """Price per seat, taken from TicketPrice by day of week."""
+    tp = db.session.get(TicketPrice, showtime.date.weekday())
+    return tp.price if tp else Decimal("8.00")
+
+
+# ---------------------------------------------------------- public pages
 @app.route("/")
 def index():
-    # movies = get_movies()
-    movies = FAKE_MOVIES
+    movies = db.session.scalars(db.select(Movie)).all()
     return render_template("index.html", movies=movies)
 
 
 @app.route("/movie/<int:movie_id>")
 def movie_detail(movie_id):
-    # movie = get_movie(movie_id)
-    movie = next((m for m in FAKE_MOVIES if m["id"] == movie_id), None)
+    movie = db.session.get(Movie, movie_id)
     if movie is None:
         abort(404)
     return render_template("movie_detail.html", movie=movie)
 
 
-# --------------------------------------------------------------------- auth
+# ----------------------------------------------------------------- auth
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name     = request.form["name"]
-        email    = request.form["email"]
+        email    = request.form["email"].strip().lower()
         password = request.form["password"]
-        # create_user(name, email, password)
+        if db.session.scalar(db.select(User).where(User.email == email)):
+            flash("That email is already registered.")
+            return redirect(url_for("register"))
+        db.session.add(User(
+            email=email,
+            password_hash=generate_password_hash(password),
+            role=UserRole.customer,
+        ))
+        db.session.commit()
         flash("Account created. You can log in now.")
         return redirect(url_for("login"))
     return render_template("register.html")
@@ -99,14 +96,17 @@ def register():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        email    = request.form["email"]
+        email    = request.form["email"].strip().lower()
         password = request.form["password"]
-        # user = authenticate(email, password)
-        user = {"email": email, "name": email.split("@")[0], "is_admin": False}
-        if not user:
+        user = db.session.scalar(db.select(User).where(User.email == email))
+        if not user or not check_password_hash(user.password_hash, password):
             flash("Wrong email or password.")
             return redirect(url_for("login"))
-        session["user"] = user
+        session["user"] = {
+            "id":       user.id,
+            "email":    user.email,
+            "is_admin": user.role == UserRole.management_staff,
+        }
         return redirect(request.args.get("next") or url_for("index"))
     return render_template("login.html")
 
@@ -117,56 +117,143 @@ def logout():
     return redirect(url_for("index"))
 
 
-# ------------------------------------------------------------------ booking
-@app.route("/booking/<int:movie_id>", methods=["GET", "POST"])
+# -------------------------------------------------------------- booking
+@app.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
 @login_required
-def booking(movie_id):
-    movie = next((m for m in FAKE_MOVIES if m["id"] == movie_id), None)
-    if movie is None:
+def booking(showtime_id):
+    showtime = db.session.get(Showtime, showtime_id)
+    if showtime is None:
         abort(404)
+    food = db.session.scalars(
+        db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
+    ).all()
+    price_per_seat = ticket_price_for(showtime)
+
     if request.method == "POST":
-        seats     = request.form.getlist("seat")
-        food_ids  = request.form.getlist("food")
-        # create_booking(session["user"]["id"], showtime_id, seats, food_ids)
-        FAKE_BOOKINGS.append({
-            "user_email": session["user"]["email"],
-            "movie_id":   movie_id,
-            "seats":      seats,
-            "food":       food_ids,
-        })
+        num_seats = int(request.form.get("num_seats", 1))
+        if num_seats < 1:
+            flash("You need at least 1 seat.")
+            return redirect(url_for("booking", showtime_id=showtime_id))
+        total = price_per_seat * num_seats
+        new_booking = Booking(
+            user_id=session["user"]["id"],
+            showtime_id=showtime.id,
+            num_seats=num_seats,
+            total_price=total,
+        )
+        db.session.add(new_booking)
+        db.session.commit()
         flash("Booking confirmed.")
         return redirect(url_for("my_bookings"))
-    return render_template("booking.html", movie=movie, food=FAKE_FOOD)
+
+    return render_template(
+        "booking.html",
+        showtime=showtime, food=food, price_per_seat=price_per_seat,
+    )
 
 
 @app.route("/my_bookings")
 @login_required
 def my_bookings():
-    email = session["user"]["email"]
-    # bookings = get_bookings(session["user"]["id"])
-    bookings = [b for b in FAKE_BOOKINGS if b["user_email"] == email]
+    bookings = db.session.scalars(
+        db.select(Booking)
+          .where(Booking.user_id == session["user"]["id"])
+          .order_by(Booking.booking_date.desc())
+    ).all()
     return render_template("my_bookings.html", bookings=bookings)
 
 
-# ------------------------------------------------------------------- admin
+# ---------------------------------------------------------------- admin
 @app.route("/manage/movies")
 @admin_required
 def manage_movies():
-    return render_template("manage_movies.html", movies=FAKE_MOVIES)
+    movies = db.session.scalars(db.select(Movie)).all()
+    return render_template("manage_movies.html", movies=movies)
 
 
 @app.route("/manage/food")
 @admin_required
 def manage_food():
-    return render_template("manage_food.html", food=FAKE_FOOD)
+    food = db.session.scalars(db.select(FoodItem)).all()
+    return render_template("manage_food.html", food=food)
 
 
 @app.route("/manage/showtimes")
 @admin_required
 def manage_showtimes():
-    return render_template("manage_showtimes.html")
+    showtimes = db.session.scalars(
+        db.select(Showtime).order_by(Showtime.date, Showtime.time)
+    ).all()
+    return render_template("manage_showtimes.html", showtimes=showtimes)
 
 
-# -------------------------------------------------------------------- run
+# ------------------------------------------- bootstrap (create + seed db)
+def init_db():
+    """Create tables and insert demo data if empty."""
+    with app.app_context():
+        db.create_all()
+        if db.session.scalar(db.select(sa.func.count(Movie.id))) == 0:
+            seed_demo()
+        db.session.commit()
+
+
+def seed_demo():
+    screen = Screen(name="Room 1", capacity=100)
+    db.session.add(screen)
+    db.session.flush()
+
+    movies = [
+        Movie(title="Dune: Part Two",
+              synopsis="Paul Atreides unites with the Fremen.",
+              duration=166, age_rating="PG-13", poster="", genre="Sci-fi"),
+        Movie(title="Oppenheimer",
+              synopsis="The making of the atomic bomb.",
+              duration=180, age_rating="R", poster="", genre="Drama"),
+        Movie(title="Spider-Verse",
+              synopsis="Miles Morales across the multiverse.",
+              duration=140, age_rating="PG", poster="", genre="Animation"),
+    ]
+    db.session.add_all(movies)
+    db.session.flush()
+
+    today = datetime.date.today()
+    db.session.add_all([
+        Showtime(movie_id=movies[0].id, screen_id=screen.id,
+                 date=today, time=datetime.time(18, 0)),
+        Showtime(movie_id=movies[1].id, screen_id=screen.id,
+                 date=today, time=datetime.time(21, 0)),
+        Showtime(movie_id=movies[2].id, screen_id=screen.id,
+                 date=today + datetime.timedelta(days=1),
+                 time=datetime.time(17, 0)),
+    ])
+
+    db.session.add_all([
+        FoodItem(name="Popcorn (M)", description="Medium popcorn.",
+                 price=Decimal("4.00")),
+        FoodItem(name="Soda",        description="33 cl soft drink.",
+                 price=Decimal("2.50")),
+        FoodItem(name="Nachos",      description="Nachos with cheese.",
+                 price=Decimal("5.00")),
+    ])
+
+    # weekday 0=Mon .. 6=Sun: cheaper on weekdays, pricier on weekends.
+    for dow in range(7):
+        db.session.add(TicketPrice(
+            day_of_week=dow,
+            price=Decimal("7.00") if dow < 5 else Decimal("9.00"),
+        ))
+
+    # one admin and one customer for testing
+    db.session.add_all([
+        User(email="admin@cinema.com",
+             password_hash=generate_password_hash("admin"),
+             role=UserRole.management_staff),
+        User(email="user@cinema.com",
+             password_hash=generate_password_hash("user"),
+             role=UserRole.customer),
+    ])
+
+
 if __name__ == "__main__":
+    init_db()
     app.run(debug=True)
