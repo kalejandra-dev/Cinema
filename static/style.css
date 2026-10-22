@@ -1,5 +1,5 @@
 :root {
-  --bg: img;
+  --bg: #12131a;
   --surface: #1c2b47;
   --surface-2: #24283f;
   --text: #ececf1;
@@ -282,3 +282,6 @@ label.checkbox { display: flex; align-items: center; gap: .5rem; color: var(--te
 .poster-blue  { background-color: #5b8def; }
 .poster-red   { background-color: #b33a3a; }
 .poster-teal  { background-color: #4f9d8a; }
+
+img.poster { width: 100%; object-fit: cover; display: block; padding: 0; }
+.poster-placeholder { background-color: var(--surface-2); }
