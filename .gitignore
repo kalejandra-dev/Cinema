@@ -1,9 +1,22 @@
-__pycache__/
-*.pyc
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+
+# Python virtual environments
 .venv/
 venv/
-.env
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Editor settings
 .vscode/
 .idea/
+
+# Local databases
 *.db
 *.sqlite3
