@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Book — {{ showtime.movie.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Book: {{ showtime.movie.title }}</h1>
+    <p>
+        {{ showtime.date }} at {{ showtime.time.strftime('%H:%M') }}
+        — Room: {{ showtime.screen.name }}
+    </p>
+    <p>Price per seat: {{ "%.2f"|format(price_per_seat) }} €</p>
+
+    <form method="POST">
+        <label>Number of seats:
+            <input type="number" name="num_seats" min="1" max="10" value="1" required>
+        </label>
+        <br><br>
+        <button type="submit">Confirm booking</button>
+    </form>
+
+    <h3>Food &amp; drinks (coming soon)</h3>
+    <ul>
+        {% for item in food %}
+            <li>{{ item.name }} — {{ "%.2f"|format(item.price) }} €</li>
+        {% endfor %}
+    </ul>
+
+    <a href="{{ url_for('index') }}">← Back</a>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ movie.title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>{{ movie.title }}</h1>
+    <p><strong>Genre:</strong> {{ movie.genre }}</p>
+    <p><strong>Duration:</strong> {{ movie.duration }} min</p>
+    <p><strong>Age rating:</strong> {{ movie.age_rating }}</p>
+    <p>{{ movie.synopsis }}</p>
+
+    <h2>Showtimes</h2>
+    {% if movie.showtimes %}
+        <ul>
+            {% for s in movie.showtimes %}
+                <li>
+                    {{ s.date }} at {{ s.time.strftime('%H:%M') }}
+                    — Room: {{ s.screen.name }}
+                    <a href="{{ url_for('booking', showtime_id=s.id) }}">Book</a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>No showtimes available.</p>
+    {% endif %}
+
+    <a href="{{ url_for('index') }}">← Back</a>
+</body>
+</html>
