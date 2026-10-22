@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Cine Web{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <nav>
+    <a href="/">Inicio</a>
+    <a href="/bookings">Mis Reservas</a>
+  </nav>
+
+  <main class="container">
+    <!-- Aquí se inyectará el contenido de cada página -->
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>&copy; 2026/27 Web Applications - Cinema</p>
+  </footer>
+</body>
+</html>

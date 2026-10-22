@@ -12,6 +12,11 @@ aprobación).
 5. Avisar de qué archivos o tablas vais a tocar para no pisaros.
 
 # COMANDOS UTILES 
+Para tener las actualizaciones del main en una rama:
+git status (tienes que estar en tu rama)
+git fetch origin
+git merge origin/main
+
 <img width="406" height="218" alt="Screenshot 2026-10-19 at 16 10 11" src="https://github.com/user-attachments/assets/59b20b1c-6848-49f4-8749-9a97d743c5d2" />
 
 
