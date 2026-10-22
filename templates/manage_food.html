@@ -1,24 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin — Food</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Admin — Food</h1>
-    <nav>
-        <a href="{{ url_for('manage_movies') }}">Movies</a> ·
-        <a href="{{ url_for('manage_food') }}">Food</a> ·
-        <a href="{{ url_for('manage_showtimes') }}">Showtimes</a> ·
-        <a href="{{ url_for('index') }}">← Site</a>
-    </nav>
-    <ul>
+{% extends "base.html" %}
+{% block title %}Manage food{% endblock %}
+{% block content %}
+<h1>Manage food &amp; drinks</h1>
+<div class="admin-layout">
+  <section class="panel">
+    <h2>Items</h2>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Description</th><th>Price</th><th>Status</th><th></th></tr></thead>
+      <tbody>
         {% for item in food %}
-            <li>{{ item.name }} — {{ "%.2f"|format(item.price) }} €
-                {% if not item.available %}(unavailable){% endif %}
-            </li>
+        <tr>
+          <td>{{ item.name }}</td>
+          <td>{{ item.description }}</td>
+          <td>{{ "%.2f"|format(item.price) }} €</td>
+          <td>
+            {% if item.available %}<span class="tag tag-ok">Available</span>
+            {% else %}<span class="tag tag-off">Sold out</span>{% endif %}
+          </td>
+          <td class="actions">
+            <button class="btn btn-small btn-secondary" type="button">Edit</button>
+            <button class="btn btn-small btn-danger" type="button">Delete</button>
+          </td>
+        </tr>
         {% endfor %}
-    </ul>
-</body>
-</html>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Add item</h2>
+    <form onsubmit="return false;">
+      <label for="name">Name</label>
+      <input id="name" name="name" type="text" required>
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3"></textarea>
+      <label for="price">Price (€)</label>
+      <input id="price" name="price" type="number" step="0.01" min="0">
+      <label class="checkbox"><input type="checkbox" name="available" checked> Available</label>
+      <button type="submit" class="btn btn-block">Save</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

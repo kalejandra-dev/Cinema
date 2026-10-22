@@ -1,33 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Book — {{ showtime.movie.title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Book: {{ showtime.movie.title }}</h1>
-    <p>
-        {{ showtime.date }} at {{ showtime.time.strftime('%H:%M') }}
-        — Room: {{ showtime.screen.name }}
-    </p>
-    <p>Price per seat: {{ "%.2f"|format(price_per_seat) }} €</p>
+{% extends "base.html" %}
+{% block title %}Book · {{ showtime.movie.title }}{% endblock %}
+{% block content %}
+<h1>Book tickets</h1>
+<p class="meta">
+  {{ showtime.movie.title }} · {{ showtime.date.strftime('%a %d/%m/%Y') }} ·
+  {{ showtime.time.strftime('%H:%M') }} · {{ showtime.screen.name }}
+</p>
 
-    <form method="POST">
-        <label>Number of seats:
-            <input type="number" name="num_seats" min="1" max="10" value="1" required>
-        </label>
-        <br><br>
-        <button type="submit">Confirm booking</button>
-    </form>
+<form method="post" class="booking-layout">
+  <section class="panel">
+    <h2>Tickets</h2>
+    <label for="num_seats">Number of seats</label>
+    <input type="number" id="num_seats" name="num_seats" min="1" max="10" value="1" class="qty">
+    <p class="meta">Price per seat: <strong class="price">{{ "%.2f"|format(price_per_seat) }} €</strong></p>
+  </section>
 
-    <h3>Food &amp; drinks (coming soon)</h3>
-    <ul>
+  <section class="panel">
+    <h2>Food &amp; drinks</h2>
+    {% if food %}
+    <table class="table">
+      <thead><tr><th>Item</th><th>Price</th><th>Qty</th></tr></thead>
+      <tbody>
         {% for item in food %}
-            <li>{{ item.name }} — {{ "%.2f"|format(item.price) }} €</li>
+        <tr>
+          <td>{{ item.name }}<br><span class="meta">{{ item.description }}</span></td>
+          <td>{{ "%.2f"|format(item.price) }} €</td>
+          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"></td>
+        </tr>
         {% endfor %}
-    </ul>
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No food available right now.</p>
+    {% endif %}
 
-    <a href="{{ url_for('index') }}">← Back</a>
-</body>
-</html>
+    <div class="summary">
+      <p class="meta">The total is calculated when you confirm.</p>
+      <button type="submit" class="btn btn-block">Confirm booking</button>
+    </div>
+  </section>
+</form>
+{% endblock %}
