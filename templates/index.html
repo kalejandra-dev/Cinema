@@ -1,10 +1,23 @@
-{% extends 'base.html' %}
-
-{% block title %}Cartelera - Cine Web{% endblock %}
-
+{% extends "base.html" %}
+{% block title %}Now showing{% endblock %}
 {% block content %}
-  <h2>Películas en Cartelera</h2>
-  <p>Elige tu película favorita y reserva tus entradas:</p>
-  
-  <!-- Aquí iría tu maquetación de las películas -->
+<section class="hero">
+  <h1>Now showing</h1>
+  <p>Pick a movie, choose a showtime and book your seats.</p>
+</section>
+
+<div class="movie-grid">
+  {% for movie in movies %}
+  <article class="movie-card">
+    {% with extra_class = "" %}{% include "_poster.html" %}{% endwith %}
+    <div class="movie-card-body">
+      <h2>{{ movie.title }}</h2>
+      <p class="meta">{{ movie.genre }} · {{ movie.duration }} min · <span class="tag">{{ movie.age_rating }}</span></p>
+      <a class="btn" href="{{ url_for('movie_detail', movie_id=movie.id) }}">See showtimes</a>
+    </div>
+  </article>
+  {% else %}
+  <p class="empty">There are no movies yet.</p>
+  {% endfor %}
+</div>
 {% endblock %}

@@ -1,30 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin — Showtimes</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Admin — Showtimes</h1>
-    <nav>
-        <a href="{{ url_for('manage_movies') }}">Movies</a> ·
-        <a href="{{ url_for('manage_food') }}">Food</a> ·
-        <a href="{{ url_for('manage_showtimes') }}">Showtimes</a> ·
-        <a href="{{ url_for('index') }}">← Site</a>
-    </nav>
-    <table>
-        <tr>
-            <th>Movie</th><th>Date</th><th>Time</th><th>Room</th>
-        </tr>
+{% extends "base.html" %}
+{% block title %}Manage showtimes{% endblock %}
+{% block content %}
+<h1>Manage showtimes</h1>
+<div class="admin-layout">
+  <section class="panel">
+    <h2>Scheduled showtimes</h2>
+    <table class="table">
+      <thead><tr><th>Movie</th><th>Screen</th><th>Date</th><th>Time</th><th></th></tr></thead>
+      <tbody>
         {% for s in showtimes %}
-            <tr>
-                <td>{{ s.movie.title }}</td>
-                <td>{{ s.date }}</td>
-                <td>{{ s.time.strftime('%H:%M') }}</td>
-                <td>{{ s.screen.name }}</td>
-            </tr>
+        <tr>
+          <td>{{ s.movie.title }}</td>
+          <td>{{ s.screen.name }}</td>
+          <td>{{ s.date.strftime('%d/%m/%Y') }}</td>
+          <td>{{ s.time.strftime('%H:%M') }}</td>
+          <td class="actions">
+            <button class="btn btn-small btn-secondary" type="button">Edit</button>
+            <button class="btn btn-small btn-danger" type="button">Delete</button>
+          </td>
+        </tr>
         {% endfor %}
+      </tbody>
     </table>
-</body>
-</html>
+  </section>
+
+  <section class="panel">
+    <h2>New showtime</h2>
+    <form onsubmit="return false;">
+      <label for="movie_id">Movie ID</label>
+      <input id="movie_id" name="movie_id" type="number" min="1">
+      <label for="screen_id">Screen ID</label>
+      <input id="screen_id" name="screen_id" type="number" min="1">
+      <label for="date">Date</label>
+      <input id="date" name="date" type="date">
+      <label for="time">Time</label>
+      <input id="time" name="time" type="time">
+      <button type="submit" class="btn btn-block">Save</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
