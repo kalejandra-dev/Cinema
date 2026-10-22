@@ -3,6 +3,69 @@ Web application for a movie theater with multiple screens. Users can browse movi
 
 - Contributors: Alejandra, Haoqi and Martin.
 
+## Cómo arrancar la app
+
+1. Instalar dependencias (una sola vez por ordenador):
+   ```
+   py -m pip install -r requirements.txt
+   ```
+
+2. Arrancar el servidor:
+   ```
+   py mainpage.py
+   ```
+   Abre http://127.0.0.1:5000 en el navegador. La primera vez se crea
+   el archivo `instance/cinema.db` con todas las tablas vacías.
+
+3. Para parar el servidor: Ctrl + C en el terminal.
+
+## Crear admin y precios de prueba (una vez por ordenador)
+
+La BD arranca vacía. Para poder entrar como admin y para que las reservas
+tengan precio, abre el terminal de Python:
+
+```
+py
+```
+
+Y pega esto dentro:
+
+```python
+from mainpage import app, db
+from model import User, UserRole, TicketPrice
+from werkzeug.security import generate_password_hash
+from decimal import Decimal
+
+with app.app_context():
+    db.session.add(User(
+        email="admin@cinema.com",
+        password_hash=generate_password_hash("admin"),
+        role=UserRole.management_staff,
+    ))
+    for dow in range(7):
+        db.session.add(TicketPrice(
+            day_of_week=dow,
+            price=Decimal("7.00") if dow < 5 else Decimal("9.00"),
+        ))
+    db.session.commit()
+
+exit()
+```
+
+Usuario de prueba: `admin@cinema.com` / `admin`. Los clientes se registran
+desde la web en `/register`.
+
+## Resetear la BD
+
+Si cambian las tablas y hay que empezar de cero:
+
+```
+Remove-Item instance\cinema.db
+py mainpage.py        # vuelve a crear las tablas vacías
+```
+
+## Reglas de equipo
+
 1. Nadie hace commit directo a main. Para forzarlo: Settings → Branches → Add branch
 protection rule sobre main, y activad Require a pull request before merging (con 1
 aprobación).
