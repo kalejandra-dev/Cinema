@@ -1,23 +1,47 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>{% block title %}Cine Web{% endblock %}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cinema{% endblock %} · Cinema</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <nav>
-    <a href="/">Inicio</a>
-    <a href="/bookings">Mis Reservas</a>
-  </nav>
+  <header class="site-header">
+    <a class="logo" href="{{ url_for('index') }}">🎬 Cinema</a>
+    <nav>
+      <a href="{{ url_for('index') }}">Movies</a>
+      {% if session.user %}
+        <a href="{{ url_for('my_bookings') }}">My bookings</a>
+        {% if session.user.is_admin %}
+          <span class="nav-sep">|</span>
+          <a href="{{ url_for('manage_movies') }}">Manage movies</a>
+          <a href="{{ url_for('manage_showtimes') }}">Manage showtimes</a>
+          <a href="{{ url_for('manage_food') }}">Manage food</a>
+        {% endif %}
+        <span class="user-badge">{{ session.user.email }}</span>
+        <a href="{{ url_for('logout') }}">Log out</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Log in</a>
+        <a class="btn btn-small" href="{{ url_for('register') }}">Sign up</a>
+      {% endif %}
+    </nav>
+  </header>
 
   <main class="container">
-    <!-- Aquí se inyectará el contenido de cada página -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for message in messages %}<li>{{ message }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
     {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    <p>&copy; 2026/27 Web Applications - Cinema</p>
+  <footer class="site-footer">
+    <p>Cinema · Web Applications project</p>
   </footer>
 </body>
 </html>

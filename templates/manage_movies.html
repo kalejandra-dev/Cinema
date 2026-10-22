@@ -1,22 +1,49 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin — Movies</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Admin — Movies</h1>
-    <nav>
-        <a href="{{ url_for('manage_movies') }}">Movies</a> ·
-        <a href="{{ url_for('manage_food') }}">Food</a> ·
-        <a href="{{ url_for('manage_showtimes') }}">Showtimes</a> ·
-        <a href="{{ url_for('index') }}">← Site</a>
-    </nav>
-    <ul>
+{% extends "base.html" %}
+{% block title %}Manage movies{% endblock %}
+{% block content %}
+<h1>Manage movies</h1>
+<div class="admin-layout">
+  <section class="panel">
+    <h2>Movies</h2>
+    <table class="table">
+      <thead><tr><th>Title</th><th>Genre</th><th>Duration</th><th>Age</th><th></th></tr></thead>
+      <tbody>
         {% for m in movies %}
-            <li>{{ m.title }} — {{ m.genre }} · {{ m.duration }} min</li>
+        <tr>
+          <td>{{ m.title }}</td>
+          <td>{{ m.genre }}</td>
+          <td>{{ m.duration }} min</td>
+          <td><span class="tag">{{ m.age_rating }}</span></td>
+          <td class="actions">
+            <button class="btn btn-small btn-secondary" type="button">Edit</button>
+            <button class="btn btn-small btn-danger" type="button">Delete</button>
+          </td>
+        </tr>
         {% endfor %}
-    </ul>
-</body>
-</html>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Add movie</h2>
+    {# Static form for now: it does not submit anywhere yet #}
+    <form onsubmit="return false;">
+      <label for="title">Title</label>
+      <input id="title" name="title" type="text" required>
+      <label for="genre">Genre</label>
+      <input id="genre" name="genre" type="text">
+      <label for="duration">Duration (min)</label>
+      <input id="duration" name="duration" type="number" min="1">
+      <label for="age_rating">Age rating</label>
+      <select id="age_rating" name="age_rating">
+        <option>G</option><option>PG</option><option>PG-13</option><option>R</option>
+      </select>
+      <label for="poster">Poster (image path or URL)</label>
+      <input id="poster" name="poster" type="text">
+      <label for="synopsis">Synopsis</label>
+      <textarea id="synopsis" name="synopsis" rows="4"></textarea>
+      <button type="submit" class="btn btn-block">Save</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

@@ -1,32 +1,28 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>My bookings</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>My bookings</h1>
-
-    {% if bookings %}
-        <table>
-            <tr>
-                <th>Movie</th><th>Date</th><th>Time</th><th>Seats</th><th>Total</th>
-            </tr>
-            {% for b in bookings %}
-                <tr>
-                    <td>{{ b.showtime.movie.title }}</td>
-                    <td>{{ b.showtime.date }}</td>
-                    <td>{{ b.showtime.time.strftime('%H:%M') }}</td>
-                    <td>{{ b.num_seats }}</td>
-                    <td>{{ "%.2f"|format(b.total_price) }} €</td>
-                </tr>
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>You have no bookings yet.</p>
-    {% endif %}
-
-    <a href="{{ url_for('index') }}">← Back</a>
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}My bookings{% endblock %}
+{% block content %}
+<h1>My bookings</h1>
+{% if bookings %}
+<div class="booking-list">
+  {% for b in bookings %}
+  <article class="booking-card">
+    <div>
+      <h2>{{ b.showtime.movie.title }}</h2>
+      <p class="meta">
+        {{ b.showtime.date.strftime('%a %d/%m/%Y') }} · {{ b.showtime.time.strftime('%H:%M') }} ·
+        {{ b.showtime.screen.name }}
+      </p>
+      <p><strong>Seats:</strong> {{ b.num_seats }}</p>
+      <p class="meta">Booked on {{ b.booking_date.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+    <div class="booking-side">
+      <span class="price">{{ "%.2f"|format(b.total_price) }} €</span>
+      <span class="meta">Booking #{{ b.id }}</span>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty">You have no bookings yet. <a href="{{ url_for('index') }}">See what's on</a></p>
+{% endif %}
+{% endblock %}
