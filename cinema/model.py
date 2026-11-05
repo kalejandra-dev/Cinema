@@ -1,6 +1,4 @@
 # SQLAlchemy DATABASE SCRIPT
-
-
 import enum
 import datetime
 from decimal import Decimal
