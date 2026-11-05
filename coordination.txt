@@ -3,50 +3,64 @@ Cinema project — coordination
 
 STACK (agreed)
 --------------
-- Backend: Flask (Python)
-- Database: SQLAlchemy (model.py)
+- Backend: Flask (Python), structured like the lab app (create_app + blueprints)
+- Database: SQLAlchemy (cinema/model.py)
+- SQLite for local development, the lab MariaDB for the final submission
 
-FOLDER LAYOUT (please respect this, Flask requires it)
-------------------------------------------------------
+FOLDER LAYOUT (please respect this)
+-----------------------------------
 Cinema/
-├── mainpage.py          <-- backend (Yo)
-├── model.py             <-- SQLAlchemy models + helpers (Amigo BD)
-├── templates/           <-- ALL .html files go HERE  (Amiga HTML)
-│   ├── index.html
-│   ├── login.html
-│   ├── register.html
-│   ├── movie_detail.html
-│   ├── booking.html
-│   ├── my_bookings.html
-│   ├── manage_movies.html
-│   ├── manage_food.html
-│   └── manage_showtimes.html
-└── static/              <-- CSS, images, JS go HERE   (Amiga HTML)
-    └── style.css
+├── .env                     <-- your own, NOT committed (see README)
+├── requirements.txt
+└── cinema/
+    ├── __init__.py          <-- create_app(), db (Backend)
+    ├── main.py              <-- movies, movie detail, booking, my bookings (Backend)
+    ├── auth.py              <-- register, login, logout, login_required/admin_required (Backend)
+    ├── admin.py             <-- manage movies / showtimes / food (Backend)
+    ├── model.py             <-- SQLAlchemy models (Amigo BD)
+    ├── commands.py          <-- flask init-db / reset-db + demo data (Amigo BD)
+    ├── templates/           <-- ALL .html files (Amiga HTML)
+    │   ├── base.html
+    │   ├── _poster.html
+    │   ├── main/   index.html, movie_detail.html, booking.html, my_bookings.html
+    │   ├── auth/   login.html, register.html
+    │   └── admin/  manage_movies.html, manage_showtimes.html, manage_food.html
+    └── static/              <-- CSS, images, JS (Amiga HTML)
+        ├── style.css
+        ├── bg_page.jpeg
+        └── posters/
 
 HTML RULES (Amiga HTML)
 -----------------------
-- Put every .html inside templates/.
-- Put style.css, images, JS inside static/.
-- Link the CSS like this (NOT a plain href):
+- Every page extends base.html: {% extends "base.html" %}
+- Put style.css, images and JS inside cinema/static/.
+- Link static files with url_for (NOT a plain href):
       <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-- Links between pages: use {{ url_for('<route_name>') }}
-      Log in       -> {{ url_for('login') }}
-      Register     -> {{ url_for('register') }}
-      Movie X      -> {{ url_for('movie_detail', movie_id=m.id) }}
-      Book movie X -> {{ url_for('booking', movie_id=m.id) }}
-- Data you can use inside the templates:
-      index.html         -> movies            (list of {id,title,price,duration})
-      movie_detail.html  -> movie             (one movie dict)
-      booking.html       -> movie, food       (food = list of {id,name,price})
-      my_bookings.html   -> bookings          (list)
-      manage_movies.html -> movies
-      manage_food.html   -> food
+- Links between pages: url_for('<blueprint>.<function>')
+      Home           -> {{ url_for('main.index') }}
+      Movie X        -> {{ url_for('main.movie_detail', movie_id=movie.id) }}
+      Book showtime  -> {{ url_for('main.booking', showtime_id=s.id) }}
+      My bookings    -> {{ url_for('main.my_bookings') }}
+      Log in         -> {{ url_for('auth.login') }}
+      Register       -> {{ url_for('auth.register') }}
+      Log out        -> {{ url_for('auth.logout') }}
+      Manage movies  -> {{ url_for('admin.manage_movies') }}
+      (same for admin.manage_showtimes and admin.manage_food)
+- Data each template receives (SQLAlchemy objects, not dicts):
+      main/index.html            -> movies           (list of Movie)
+      main/movie_detail.html     -> movie            (Movie; use movie.showtimes)
+      main/booking.html          -> showtime, food, price_per_seat
+      main/my_bookings.html      -> bookings         (list of Booking)
+      admin/manage_movies.html   -> movies
+      admin/manage_showtimes.html-> showtimes
+      admin/manage_food.html     -> food
+- Logged-in user in templates: session.user (keys: id, email, is_admin)
 
-DATABASE (model.py, SQLAlchemy — DONE by Amigo BD)
----------------------------------------------------
-Models in model.py:
+DATABASE (cinema/model.py — Amigo BD)
+-------------------------------------
+Models:
     Movie       (id, title, synopsis, duration, age_rating, poster, genre)
+                 poster = path inside static/, e.g. "posters/dune2.jpeg"
     Screen      (id, name, capacity)
     Showtime    (id, movie_id, screen_id, date, time)
     User        (id, email, password_hash, role=UserRole)
@@ -59,19 +73,31 @@ Models in model.py:
     BookingPackage (booking_id, package_id, quantity, price)
     TicketPrice (day_of_week, price)
 
-mainpage.py uses db.session directly (no helper functions):
+In the blueprints, import the models from the package:
+    from . import db
+    from .model import Movie, Showtime
     db.session.scalars(db.select(Movie)).all()
     db.session.get(Movie, movie_id)
     db.session.add(obj); db.session.commit()
 
 HOW TO RUN
 ----------
+See README.md. Short version (with the venv active and a .env file):
     pip install -r requirements.txt
-    python mainpage.py
+    flask --app=cinema init-db
+    flask --debug --app=cinema run
     open http://127.0.0.1:5000
+
+TO DO
+-----
+- Booking: save the food items chosen in booking.html (BookingItem) and add them to the total.
+- Admin: routes for the add / edit / delete forms (they don't submit anywhere yet).
+- Lab 4: replace the session-based login with Flask-Login (current_user, login_required).
+- Lab 6: CSRF protection (CSRFProtect + hidden csrf_token in every POST form).
+- Connect to the lab MariaDB (mysql+pymysql://... in .env) and test there.
 
 BRANCHES / MERGING
 ------------------
-- Amiga HTML works on branch feature/front-dev, commits HTML inside templates/.
-- Amigo BD works on branch database, commits model.py.
-- I (mainpage) merge both branches into mainpage, test, then open PR to main.
+- Everyone creates a branch from main for each task (feature/..., fix/...).
+- Before opening a PR: git fetch origin && git merge origin/main, and test the app.
+- Open a Pull Request to main; it needs 1 approval before merging.
