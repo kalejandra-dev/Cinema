@@ -13,7 +13,7 @@
     <div class="movie-card-body">
       <h2>{{ movie.title }}</h2>
       <p class="meta">{{ movie.genre }} · {{ movie.duration }} min · <span class="tag">{{ movie.age_rating }}</span></p>
-      <a class="btn" href="{{ url_for('movie_detail', movie_id=movie.id) }}">See showtimes</a>
+      <a class="btn" href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">See showtimes</a>
     </div>
   </article>
   {% else %}

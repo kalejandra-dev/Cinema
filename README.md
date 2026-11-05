@@ -3,6 +3,27 @@ Web application for a movie theater with multiple screens. Users can browse movi
 
 - Contributors: Alejandra, Haoqi and Martin.
 
+## Project Structure
+
+Cinema/
+├── .env                  # SECRET_KEY, SQLALCHEMY_DATABASE_URI
+├── requirements.txt
+└── cinema/
+    ├── __init__.py       # create_app, db, LoginManager, CSRFProtect
+    ├── model.py          # User(UserMixin), Movie, Screen, Showtime, Booking, FoodItem...
+    ├── main.py           # bp "main": movies,  movie details, book, my bookings
+    ├── auth.py           # bp "auth": signup, login, logout
+    ├── admin.py          # bp "admin": manage movies, sessions, food (abort 403 if not staff)
+    ├── static/
+    │   ├── cinema.css
+    │   └── booking.js
+    └── templates/
+        ├── base.html
+        ├── movie_template.html, movies_template.html  
+        ├── main/  (index, movie, booking, my_bookings)
+        ├── auth/  (signup, login)
+        └── admin/ (manage_movies, manage_showtimes, manage_food)
+
 ## Cómo arrancar la app
 
 1. Instalar dependencias (una sola vez por ordenador):
