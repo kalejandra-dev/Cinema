@@ -8,22 +8,22 @@
 </head>
 <body>
   <header class="site-header">
-    <a class="logo" href="{{ url_for('index') }}">Cinema</a>
+    <a class="logo" href="{{ url_for('main.index') }}">Cinema</a>
     <nav>
-      <a href="{{ url_for('index') }}">Movies</a>
+      <a href="{{ url_for('main.index') }}">Movies</a>
       {% if session.user %}
-        <a href="{{ url_for('my_bookings') }}">My bookings</a>
+        <a href="{{ url_for('main.my_bookings') }}">My bookings</a>
         {% if session.user.is_admin %}
           <span class="nav-sep">|</span>
-          <a href="{{ url_for('manage_movies') }}">Manage movies</a>
-          <a href="{{ url_for('manage_showtimes') }}">Manage showtimes</a>
-          <a href="{{ url_for('manage_food') }}">Manage food</a>
+          <a href="{{ url_for('admin.manage_movies') }}">Manage movies</a>
+          <a href="{{ url_for('admin.manage_showtimes') }}">Manage showtimes</a>
+          <a href="{{ url_for('admin.manage_food') }}">Manage food</a>
         {% endif %}
         <span class="user-badge">{{ session.user.email }}</span>
-        <a href="{{ url_for('logout') }}">Log out</a>
+        <a href="{{ url_for('auth.logout') }}">Log out</a>
       {% else %}
-        <a href="{{ url_for('login') }}">Log in</a>
-        <a class="btn btn-small" href="{{ url_for('register') }}">Sign up</a>
+        <a href="{{ url_for('auth.login') }}">Log in</a>
+        <a class="btn btn-small" href="{{ url_for('auth.register') }}">Sign up</a>
       {% endif %}
     </nav>
   </header>
