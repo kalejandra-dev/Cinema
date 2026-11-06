@@ -7,12 +7,38 @@
   {{ showtime.time.strftime('%H:%M') }} · {{ showtime.screen.name }}
 </p>
 
-<form method="post" class="booking-layout">
+<form method="post" class="booking-layout" id="booking-form"
+      data-price-per-seat="{{ price_per_seat }}">
   <section class="panel">
-    <h2>Tickets</h2>
-    <label for="num_seats">Number of seats</label>
-    <input type="number" id="num_seats" name="num_seats" min="1" max="10" value="1" class="qty">
-    <p class="meta">Price per seat: <strong class="price">{{ "%.2f"|format(price_per_seat) }} €</strong></p>
+    <h2>Choose your seats</h2>
+
+    <div class="seat-map">
+      <div class="screen">Screen</div>
+      {% for row, numbers in showtime.screen.seat_layout() %}
+      <div class="seat-row">
+        <span class="row-label">{{ row }}</span>
+        {% for number in numbers %}
+          {% set label = row ~ number %}
+          <label class="seat" title="Seat {{ label }}">
+            <input type="checkbox" name="seats" value="{{ label }}"
+                   {% if label in taken %}disabled{% endif %}>
+            <span>{{ number }}</span>
+          </label>
+        {% endfor %}
+        <span class="row-label">{{ row }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <ul class="seat-legend">
+      <li><span class="seat-icon seat-free"></span> Available</li>
+      <li><span class="seat-icon seat-selected"></span> Selected</li>
+      <li><span class="seat-icon seat-taken"></span> Taken</li>
+    </ul>
+
+    <p class="meta">
+      Price per seat: <strong class="price">{{ "%.2f"|format(price_per_seat) }} €</strong>
+    </p>
   </section>
 
   <section class="panel">
@@ -35,9 +61,12 @@
     {% endif %}
 
     <div class="summary">
-      <p class="meta">The total is calculated when you confirm.</p>
+      <p>Seats: <strong id="selected-seats">none</strong></p>
+      <p>Tickets total: <strong id="seats-total" class="price">0.00</strong> €</p>
       <button type="submit" class="btn btn-block">Confirm booking</button>
     </div>
   </section>
 </form>
+
+<script src="{{ url_for('static', filename='seat_map.js') }}"></script>
 {% endblock %}
