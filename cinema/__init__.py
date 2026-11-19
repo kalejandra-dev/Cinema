@@ -3,6 +3,7 @@ import os
 import dotenv
 import flask_login
 from flask import Flask
+import flask_wtf
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
@@ -22,6 +23,8 @@ def create_app(test_config=None):
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
 
     db.init_app(app)
+    # CSRF protection for every POST form (lab 6)
+    flask_wtf.CSRFProtect(app)
     # User sessions 
     login_manager = flask_login.LoginManager()
     login_manager.login_view = "auth.login"

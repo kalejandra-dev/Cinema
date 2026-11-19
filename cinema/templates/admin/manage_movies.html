@@ -18,6 +18,7 @@
           <td class="actions">
             <form action="{{ url_for('admin.delete_movie', movie_id=m.id) }}" method="post"
                   onsubmit="return confirm('Delete this movie?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-small btn-danger" type="submit">Delete</button>
             </form>
           </td>
@@ -32,6 +33,7 @@
   <section class="panel">
     <h2>Add movie</h2>
     <form action="{{ url_for('admin.new_movie') }}" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="title">Title</label>
       <input id="title" name="title" type="text" required>
       <label for="genre">Genre</label>

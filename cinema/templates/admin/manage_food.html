@@ -19,12 +19,14 @@
           </td>
           <td class="actions">
             <form action="{{ url_for('admin.toggle_food', food_id=item.id) }}" method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-small btn-secondary" type="submit">
                 {{ "Mark sold out" if item.available else "Mark available" }}
               </button>
             </form>
             <form action="{{ url_for('admin.delete_food', food_id=item.id) }}" method="post"
                   onsubmit="return confirm('Delete this item?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-small btn-danger" type="submit">Delete</button>
             </form>
           </td>
@@ -39,6 +41,7 @@
   <section class="panel">
     <h2>Add item</h2>
     <form action="{{ url_for('admin.new_food') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="name">Name</label>
       <input id="name" name="name" type="text" required>
       <label for="description">Description</label>

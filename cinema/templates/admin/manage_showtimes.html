@@ -18,6 +18,7 @@
           <td class="actions">
             <form action="{{ url_for('admin.delete_showtime', showtime_id=s.id) }}" method="post"
                   onsubmit="return confirm('Delete this showtime?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-small btn-danger" type="submit">Delete</button>
             </form>
           </td>
@@ -33,6 +34,7 @@
     <h2>New showtime</h2>
     {% if movies and screens %}
     <form action="{{ url_for('admin.new_showtime') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="movie_id">Movie</label>
       <select id="movie_id" name="movie_id" required>
         {% for m in movies %}

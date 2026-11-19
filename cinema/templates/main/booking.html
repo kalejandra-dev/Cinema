@@ -9,6 +9,7 @@
 
 <form method="post" class="booking-layout" id="booking-form"
       data-price-per-seat="{{ price_per_seat }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <section class="panel">
     <h2>Choose your seats</h2>
 

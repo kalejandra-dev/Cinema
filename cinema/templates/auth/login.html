@@ -4,6 +4,7 @@
 <section class="form-card">
   <h1>Log in</h1>
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <label for="email">Email</label>
     <input type="email" id="email" name="email" placeholder="you@email.com" required>
 
