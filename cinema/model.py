@@ -2,8 +2,10 @@
 import enum
 import datetime
 from decimal import Decimal
+from typing import Optional
+import flask_login
 
-from sqlalchemy import String, ForeignKey, Enum, Numeric, DateTime, func, UniqueConstraint
+from sqlalchemy import String, ForeignKey, Enum, Numeric, DateTime, func, UniqueConstraint, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import db
@@ -14,6 +16,7 @@ class Movie(db.Model):
 
     __tablename__ = "movie"
 
+    MAX_POSTER_SIZE = 2 * 1024 * 1024  # maximum poster size: 2 MiB
     id: Mapped[int] = mapped_column(primary_key=True)
 
     title: Mapped[str] = mapped_column(String(200))
@@ -24,7 +27,11 @@ class Movie(db.Model):
 
     age_rating: Mapped[str] = mapped_column(String(20))
 
-    poster: Mapped[str] = mapped_column(String(255))
+    poster_mime_type: Mapped[Optional[str]] = mapped_column(String(128))
+
+    poster_data: Mapped[Optional[bytes]] = mapped_column(
+        LargeBinary(MAX_POSTER_SIZE)
+    )
 
     genre: Mapped[str] = mapped_column(String(100))
 
@@ -101,7 +108,7 @@ class UserRole(enum.Enum):
     customer = 1
     management_staff = 2
 
-class User(db.Model):
+class User(flask_login.UserMixin, db.Model):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -121,6 +128,9 @@ class User(db.Model):
     bookings: Mapped[list["Booking"]] = relationship(
         back_populates="user"
     )
+    @property
+    def is_staff(self):
+        return self.role == UserRole.management_staff
 
 
 class Booking(db.Model):

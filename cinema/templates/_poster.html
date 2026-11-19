@@ -1,7 +1,7 @@
-{# Reusable poster: shows the image if movie.poster is set, otherwise a placeholder #}
-{% if movie.poster %}
+{# Reusable poster: shows the movie poster stored in the database, otherwise a placeholder #}
+{% if movie.poster_data %}
   <img class="poster {{ extra_class }}" alt="{{ movie.title }} poster"
-       src="{{ movie.poster if movie.poster.startswith('http') else url_for('static', filename=movie.poster) }}">
+       src="{{ url_for('main.movie_poster', movie_id=movie.id) }}">
 {% else %}
   <div class="poster poster-placeholder {{ extra_class }}"><span>{{ movie.title }}</span></div>
 {% endif %}

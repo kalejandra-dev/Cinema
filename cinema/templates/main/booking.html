@@ -9,6 +9,7 @@
 
 <form method="post" class="booking-layout" id="booking-form"
       data-price-per-seat="{{ price_per_seat }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   <section class="panel">
     <h2>Choose your seats</h2>
 
@@ -51,7 +52,8 @@
         <tr>
           <td>{{ item.name }}<br><span class="meta">{{ item.description }}</span></td>
           <td>{{ "%.2f"|format(item.price) }} €</td>
-          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"></td>
+          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"
+            data-price="{{ item.price }}"></td>
         </tr>
         {% endfor %}
       </tbody>
@@ -62,7 +64,9 @@
 
     <div class="summary">
       <p>Seats: <strong id="selected-seats">none</strong></p>
-      <p>Tickets total: <strong id="seats-total" class="price">0.00</strong> €</p>
+      <p>Tickets: <span id="seats-total">0.00</span> €</p>
+      <p>Food &amp; drinks: <span id="food-total">0.00</span> €</p>
+      <p>Total: <strong id="booking-total" class="price">0.00</strong> €</p>
       <button type="submit" class="btn btn-block">Confirm booking</button>
     </div>
   </section>

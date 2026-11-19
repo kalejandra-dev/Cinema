@@ -1,16 +1,38 @@
+import datetime
 from decimal import Decimal
+
+import flask_login
+from flask import (
+    Blueprint, render_template, request, redirect, url_for, flash, abort
+)
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
-from flask import (
-    Blueprint, render_template, request, redirect, url_for, session, flash, abort
+from . import db
+
+from .model import (
+    Movie, Showtime, Booking, BookedSeat, BookingItem, FoodItem, TicketPrice,
 )
 
-from . import db
-from .model import Movie, Showtime, Booking, FoodItem, TicketPrice, BookedSeat
-from .auth import login_required
-
 bp = Blueprint("main", __name__)
+MAX_FOOD_QUANTITY = 10  # per item and booking (same as max="10" in booking.html)
+DAYS_AHEAD = 7          # the billboard shows showtimes from now to 7 days ahead
 
+
+def upcoming():
+    """SQL condition for showtimes that have not started yet and are
+    at most DAYS_AHEAD days from today. Use it inside .where(...)."""
+    now = datetime.datetime.now()
+    last_day = now.date() + datetime.timedelta(days=DAYS_AHEAD)
+    return and_(
+        or_(Showtime.date > now.date(),
+            and_(Showtime.date == now.date(), Showtime.time > now.time())),
+        Showtime.date <= last_day,
+    )
+
+
+def has_started(showtime):
+    return datetime.datetime.combine(showtime.date, showtime.time) <= datetime.datetime.now()
 
 def ticket_price_for(showtime):
     """Price per seat, taken from TicketPrice by day of the week."""
@@ -29,30 +51,69 @@ def all_seats(screen):
             for row, numbers in screen.seat_layout()
             for number in numbers}
 
+def food_quantities(form, food):
+    """Read the food_<id> inputs of the booking form.
+
+    Returns a list of (FoodItem, quantity) with quantity > 0,
+    or None if some quantity is not valid.
+    """
+    chosen = []
+    for item in food:
+        value = form.get(f"food_{item.id}", "") or "0"
+        try:
+            quantity = int(value)
+        except ValueError:
+            return None
+        if quantity < 0 or quantity > MAX_FOOD_QUANTITY:
+            return None
+        if quantity > 0:
+            chosen.append((item, quantity))
+    return chosen
+
 # ====== Public pages ======
 
 @bp.route("/")
 def index():
-    movies = db.session.scalars(db.select(Movie)).all()
+    # Movies with at least one upcoming showtime
+    showing = db.select(Showtime.movie_id).where(upcoming())
+    query = db.select(Movie).where(Movie.id.in_(showing)).order_by(Movie.title)
+    movies = db.session.scalars(query).all()
     return render_template("main/index.html", movies=movies)
 
 
 @bp.route("/movie/<int:movie_id>")
 def movie_detail(movie_id):
-    movie = db.session.get(Movie, movie_id)
-    if movie is None:
-        abort(404)
-    return render_template("main/movie_detail.html", movie=movie)
+    movie = db.get_or_404(Movie, movie_id)
+    query = (
+        db.select(Showtime)
+        .where(Showtime.movie_id == movie.id)
+        .where(upcoming())
+        .order_by(Showtime.date, Showtime.time)
+    )
+    showtimes = db.session.scalars(query).all()
+    return render_template("main/movie_detail.html", movie=movie, showtimes=showtimes)
+
+@bp.route("/movie/<int:movie_id>/poster")
+def movie_poster(movie_id):
+    movie = db.get_or_404(Movie, movie_id)
+    if not movie.poster_data:
+        abort(404, f"Movie {movie_id} does not have a poster")
+    return (
+        movie.poster_data,
+        200,
+        {"Content-Type": movie.poster_mime_type},
+    )
 
 
 # ====== Bookings ======
 
 @bp.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
-@login_required
+@flask_login.login_required
 def booking(showtime_id):
-    showtime = db.session.get(Showtime, showtime_id)
-    if showtime is None:
-        abort(404)
+    showtime = db.get_or_404(Showtime, showtime_id)
+    if has_started(showtime):
+        flash("This showtime has already started. Please choose another one.")
+        return redirect(url_for("main.movie_detail", movie_id=showtime.movie_id))
 
     food = db.session.scalars(
         db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
@@ -72,8 +133,13 @@ def booking(showtime_id):
                   + ", ".join(sorted(already_taken)))
             return redirect(url_for("main.booking", showtime_id=showtime_id))
 
+        chosen_food = food_quantities(request.form, food)
+        if chosen_food is None:
+            flash(f"Food quantities must be between 0 and {MAX_FOOD_QUANTITY}.")
+            return redirect(url_for("main.booking", showtime_id=showtime_id))
+
         new_booking = Booking(
-            user_id=session["user"]["id"],
+            user_id=flask_login.current_user.id,
             showtime_id=showtime.id,
             num_seats=len(chosen),
             total_price=price_per_seat * len(chosen),
@@ -84,6 +150,15 @@ def booking(showtime_id):
                 seat_row=label[0],
                 seat_number=int(label[1:]),
             ))
+        for item, quantity in chosen_food:
+            # Save the price paid now, in case the menu price changes later
+            new_booking.items.append(BookingItem(
+                food_item_id=item.id,
+                quantity=quantity,
+                price=item.price,
+            ))
+            new_booking.total_price += item.price * quantity
+            
         db.session.add(new_booking)
         try:
             db.session.commit()
@@ -100,11 +175,11 @@ def booking(showtime_id):
                            taken=taken_seats(showtime))
 
 @bp.route("/my_bookings")
-@login_required
+@flask_login.login_required
 def my_bookings():
     bookings = db.session.scalars(
         db.select(Booking)
-          .where(Booking.user_id == session["user"]["id"])
+          .where(Booking.user_id == flask_login.current_user.id)
           .order_by(Booking.booking_date.desc())
     ).all()
     return render_template("main/my_bookings.html", bookings=bookings)

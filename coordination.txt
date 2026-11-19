@@ -5,6 +5,7 @@ STACK (agreed)
 --------------
 - Backend: Flask (Python), structured like the lab app (create_app + blueprints)
 - Database: SQLAlchemy (cinema/model.py)
+- Sessions: Flask-Login (lab 4). CSRF protection: Flask-WTF (lab 6)
 - SQLite for local development, the lab MariaDB for the final submission
 
 FOLDER LAYOUT (please respect this)
@@ -13,12 +14,12 @@ Cinema/
 ├── .env                     <-- your own, NOT committed (see README)
 ├── requirements.txt
 └── cinema/
-    ├── __init__.py          <-- create_app(), db (Backend)
-    ├── main.py              <-- movies, movie detail, booking, my bookings (Backend)
-    ├── auth.py              <-- register, login, logout, login_required/admin_required (Backend)
+    ├── __init__.py          <-- create_app(), db, LoginManager, CSRFProtect (Backend)
+    ├── main.py              <-- billboard, movie detail, poster, booking, my bookings (Backend)
+    ├── auth.py              <-- register, login, logout, admin_required (Backend)
     ├── admin.py             <-- manage movies / showtimes / food (Backend)
     ├── model.py             <-- SQLAlchemy models (Amigo BD)
-    ├── commands.py          <-- flask init-db / reset-db + demo data (Amigo BD)
+    ├── commands.py          <-- flask init-db / create-admin / reset-db (Amigo BD)
     ├── templates/           <-- ALL .html files (Amiga HTML)
     │   ├── base.html
     │   ├── _poster.html
@@ -28,17 +29,20 @@ Cinema/
     └── static/              <-- CSS, images, JS (Amiga HTML)
         ├── style.css
         ├── bg_page.jpeg
-        └── posters/
+        └── seat_map.js
 
 HTML RULES (Amiga HTML)
 -----------------------
 - Every page extends base.html: {% extends "base.html" %}
-- Put style.css, images and JS inside cinema/static/.
+- Put style.css, images and JS inside cinema/static/ (one single CSS file).
 - Link static files with url_for (NOT a plain href):
       <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+- Every <form method="post"> must include the CSRF token as its first line:
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 - Links between pages: url_for('<blueprint>.<function>')
       Home           -> {{ url_for('main.index') }}
       Movie X        -> {{ url_for('main.movie_detail', movie_id=movie.id) }}
+      Poster of X    -> {{ url_for('main.movie_poster', movie_id=movie.id) }}
       Book showtime  -> {{ url_for('main.booking', showtime_id=s.id) }}
       My bookings    -> {{ url_for('main.my_bookings') }}
       Log in         -> {{ url_for('auth.login') }}
@@ -46,38 +50,49 @@ HTML RULES (Amiga HTML)
       Log out        -> {{ url_for('auth.logout') }}
       Manage movies  -> {{ url_for('admin.manage_movies') }}
       (same for admin.manage_showtimes and admin.manage_food)
+  The full list of routes is in README.md.
 - Data each template receives (SQLAlchemy objects, not dicts):
-      main/index.html            -> movies           (list of Movie)
-      main/movie_detail.html     -> movie            (Movie; use movie.showtimes)
-      main/booking.html          -> showtime, food, price_per_seat
-      main/my_bookings.html      -> bookings         (list of Booking)
-      admin/manage_movies.html   -> movies
-      admin/manage_showtimes.html-> showtimes
-      admin/manage_food.html     -> food
-- Logged-in user in templates: session.user (keys: id, email, is_admin)
+      main/index.html              -> movies     (movies with showtimes in the next 7 days)
+      main/movie_detail.html       -> movie, showtimes (upcoming showtimes of that movie)
+      main/booking.html            -> showtime, food, price_per_seat,
+                                      taken (set of taken seat labels, e.g. {"A1", "C5"})
+      main/my_bookings.html        -> bookings   (each one has .seats and .items = food lines)
+      admin/manage_movies.html     -> movies
+      admin/manage_showtimes.html  -> showtimes, movies, screens
+      admin/manage_food.html       -> food
+- Logged-in user in templates (Flask-Login):
+      current_user.is_authenticated, current_user.email, current_user.is_staff
 
 DATABASE (cinema/model.py — Amigo BD)
 -------------------------------------
 Models:
-    Movie       (id, title, synopsis, duration, age_rating, poster, genre)
-                 poster = path inside static/, e.g. "posters/dune2.jpeg"
-    Screen      (id, name, capacity)
+    Movie       (id, title, synopsis, duration, age_rating, genre,
+                 poster_data, poster_mime_type)   <- poster stored in the db (lab 5)
+    Screen      (id, name, capacity)              <- seat_layout(): rows A, B... of 10 seats
     Showtime    (id, movie_id, screen_id, date, time)
-    User        (id, email, password_hash, role=UserRole)
+    User        (id, email, password_hash, role=UserRole)  <- UserMixin, is_staff
     UserRole    enum (customer, management_staff)
     Booking     (id, user_id, showtime_id, num_seats, total_price, booking_date)
+    BookedSeat  (id, booking_id, showtime_id, seat_row, seat_number)
+                 unique (showtime_id, seat_row, seat_number): a seat can't be booked twice
     FoodItem    (id, name, description, price, available)
-    Package     (id, name, description, ticket_quantity, price)
-    PackageItem (package_id, food_item_id, quantity)
-    BookingItem (booking_id, food_item_id, quantity, price)
-    BookingPackage (booking_id, package_id, quantity, price)
-    TicketPrice (day_of_week, price)
+    BookingItem (booking_id, food_item_id, quantity, price)   <- price paid per unit
+    Package     (id, name, description, ticket_quantity, price)      (not used yet)
+    PackageItem (package_id, food_item_id, quantity)                 (not used yet)
+    BookingPackage (booking_id, package_id, quantity, price)         (not used yet)
+    TicketPrice (day_of_week, price)   0=Mon ... 6=Sun
+
+Basic data created by `flask --app=cinema init-db` (cinema/commands.py):
+    Screens: "Screen 1" ... "Screen 6", 100 seats each
+    Prices:  Mon/Tue/Thu/Fri 7 €, Wed 5 € (día del espectador), Sat/Sun 11 €
+Movies, showtimes and food are added from the web (staff "Manage" pages).
+Staff users are created with `flask --app=cinema create-admin`.
 
 In the blueprints, import the models from the package:
     from . import db
     from .model import Movie, Showtime
     db.session.scalars(db.select(Movie)).all()
-    db.session.get(Movie, movie_id)
+    db.get_or_404(Movie, movie_id)
     db.session.add(obj); db.session.commit()
 
 HOW TO RUN
@@ -85,19 +100,36 @@ HOW TO RUN
 See README.md. Short version (with the venv active and a .env file):
     pip install -r requirements.txt
     flask --app=cinema init-db
+    flask --app=cinema create-admin
     flask --debug --app=cinema run
     open http://127.0.0.1:5000
 
+AFTER PULLING THESE CHANGES (once)
+----------------------------------
+    pip install -r requirements.txt      # new: Flask-Login, Flask-WTF
+    flask --app=cinema reset-db          # tables changed and demo data was removed
+    flask --app=cinema create-admin      # admin@cinema.com / admin no longer exists
+
+DONE
+----
+- Project structure like the labs (app factory + blueprints)
+- Seat map, food and drinks in bookings, live totals
+- Posters stored in the database and served by a route (lab 5)
+- Staff pages: add / delete movies (poster upload), showtimes, food
+- Flask-Login (lab 4) and CSRF protection (lab 6)
+- Billboard shows only movies with showtimes in the next 7 days
+- init-db with screens and prices, create-admin command
+
 TO DO
 -----
-- Booking: save the food items chosen in booking.html (BookingItem) and add them to the total.
-- Admin: routes for the add / edit / delete forms (they don't submit anywhere yet).
-- Lab 4: replace the session-based login with Flask-Login (current_user, login_required).
-- Lab 6: CSRF protection (CSRFProtect + hidden csrf_token in every POST form).
-- Connect to the lab MariaDB (mysql+pymysql://... in .env) and test there.
+- Connect to the lab MariaDB (mysql+pymysql://... in .env), run init-db + create-admin there
+  and test everything from a lab computer.
+- Improve the look of the site (style.css).
+- Optional: edit movies / showtimes / food, cancel bookings, packages (Package models).
 
 BRANCHES / MERGING
 ------------------
 - Everyone creates a branch from main for each task (feature/..., fix/...).
 - Before opening a PR: git fetch origin && git merge origin/main, and test the app.
 - Open a Pull Request to main; it needs 1 approval before merging.
+- Never `git push --force` to main.

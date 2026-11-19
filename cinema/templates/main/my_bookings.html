@@ -19,6 +19,13 @@
           {{ b.num_seats }}
         {% endif %}
       </p>
+      {% if b.items %}
+      <p><strong>Food &amp; drinks:</strong>
+        {% for line in b.items %}
+          {{ line.quantity }} × {{ line.food_item.name }}{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </p>
+      {% endif %}
       <p class="meta">Booked on {{ b.booking_date.strftime('%d/%m/%Y %H:%M') }}</p>
     </div>
     <div class="booking-side">
