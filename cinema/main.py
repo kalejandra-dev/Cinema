@@ -1,13 +1,13 @@
 from decimal import Decimal
-from sqlalchemy.exc import IntegrityError
 
+import flask_login
 from flask import (
-    Blueprint, render_template, request, redirect, url_for, session, flash, abort
+    Blueprint, render_template, request, redirect, url_for, flash, abort
 )
+from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .model import Movie, Showtime, Booking, FoodItem, TicketPrice, BookedSeat
-from .auth import login_required
 
 bp = Blueprint("main", __name__)
 
@@ -59,7 +59,7 @@ def movie_poster(movie_id):
 # ====== Bookings ======
 
 @bp.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
-@login_required
+@flask_login.login_required
 def booking(showtime_id):
     showtime = db.session.get(Showtime, showtime_id)
     if showtime is None:
@@ -84,7 +84,7 @@ def booking(showtime_id):
             return redirect(url_for("main.booking", showtime_id=showtime_id))
 
         new_booking = Booking(
-            user_id=session["user"]["id"],
+            user_id=flask_login.current_user.id,
             showtime_id=showtime.id,
             num_seats=len(chosen),
             total_price=price_per_seat * len(chosen),
@@ -111,11 +111,11 @@ def booking(showtime_id):
                            taken=taken_seats(showtime))
 
 @bp.route("/my_bookings")
-@login_required
+@flask_login.login_required
 def my_bookings():
     bookings = db.session.scalars(
         db.select(Booking)
-          .where(Booking.user_id == session["user"]["id"])
+          .where(Booking.user_id == flask_login.current_user.id)
           .order_by(Booking.booking_date.desc())
     ).all()
     return render_template("main/my_bookings.html", bookings=bookings)

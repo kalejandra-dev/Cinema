@@ -3,6 +3,7 @@ import enum
 import datetime
 from decimal import Decimal
 from typing import Optional
+import flask_login
 
 from sqlalchemy import String, ForeignKey, Enum, Numeric, DateTime, func, UniqueConstraint, LargeBinary
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -107,7 +108,7 @@ class UserRole(enum.Enum):
     customer = 1
     management_staff = 2
 
-class User(db.Model):
+class User(flask_login.UserMixin, db.Model):
     __tablename__ = "user"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -127,6 +128,9 @@ class User(db.Model):
     bookings: Mapped[list["Booking"]] = relationship(
         back_populates="user"
     )
+    @property
+    def is_staff(self):
+        return self.role == UserRole.management_staff
 
 
 class Booking(db.Model):
