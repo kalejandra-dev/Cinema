@@ -7,9 +7,13 @@ from flask import (
 from sqlalchemy.exc import IntegrityError
 
 from . import db
-from .model import Movie, Showtime, Booking, FoodItem, TicketPrice, BookedSeat
+
+from .model import (
+    Movie, Showtime, Booking, BookedSeat, BookingItem, FoodItem, TicketPrice,
+)
 
 bp = Blueprint("main", __name__)
+MAX_FOOD_QUANTITY = 10  # per item and booking (same as max="10" in booking.html)
 
 
 def ticket_price_for(showtime):
@@ -28,6 +32,25 @@ def all_seats(screen):
     return {f"{row}{number}"
             for row, numbers in screen.seat_layout()
             for number in numbers}
+
+def food_quantities(form, food):
+    """Read the food_<id> inputs of the booking form.
+
+    Returns a list of (FoodItem, quantity) with quantity > 0,
+    or None if some quantity is not valid.
+    """
+    chosen = []
+    for item in food:
+        value = form.get(f"food_{item.id}", "") or "0"
+        try:
+            quantity = int(value)
+        except ValueError:
+            return None
+        if quantity < 0 or quantity > MAX_FOOD_QUANTITY:
+            return None
+        if quantity > 0:
+            chosen.append((item, quantity))
+    return chosen
 
 # ====== Public pages ======
 
@@ -83,6 +106,11 @@ def booking(showtime_id):
                   + ", ".join(sorted(already_taken)))
             return redirect(url_for("main.booking", showtime_id=showtime_id))
 
+        chosen_food = food_quantities(request.form, food)
+        if chosen_food is None:
+            flash(f"Food quantities must be between 0 and {MAX_FOOD_QUANTITY}.")
+            return redirect(url_for("main.booking", showtime_id=showtime_id))
+
         new_booking = Booking(
             user_id=flask_login.current_user.id,
             showtime_id=showtime.id,
@@ -95,6 +123,15 @@ def booking(showtime_id):
                 seat_row=label[0],
                 seat_number=int(label[1:]),
             ))
+        for item, quantity in chosen_food:
+            # Save the price paid now, in case the menu price changes later
+            new_booking.items.append(BookingItem(
+                food_item_id=item.id,
+                quantity=quantity,
+                price=item.price,
+            ))
+            new_booking.total_price += item.price * quantity
+            
         db.session.add(new_booking)
         try:
             db.session.commit()
