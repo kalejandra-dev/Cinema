@@ -6,19 +6,24 @@
   <section class="panel">
     <h2>Movies</h2>
     <table class="table">
-      <thead><tr><th>Title</th><th>Genre</th><th>Duration</th><th>Age</th><th></th></tr></thead>
+      <thead><tr><th>Title</th><th>Genre</th><th>Duration</th><th>Age</th><th>Poster</th><th></th></tr></thead>
       <tbody>
         {% for m in movies %}
         <tr>
-          <td>{{ m.title }}</td>
+          <td><a href="{{ url_for('main.movie_detail', movie_id=m.id) }}">{{ m.title }}</a></td>
           <td>{{ m.genre }}</td>
           <td>{{ m.duration }} min</td>
           <td><span class="tag">{{ m.age_rating }}</span></td>
+          <td>{{ "Yes" if m.poster_data else "No" }}</td>
           <td class="actions">
-            <button class="btn btn-small btn-secondary" type="button">Edit</button>
-            <button class="btn btn-small btn-danger" type="button">Delete</button>
+            <form action="{{ url_for('admin.delete_movie', movie_id=m.id) }}" method="post"
+                  onsubmit="return confirm('Delete this movie?');">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
           </td>
         </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">No movies yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -26,20 +31,19 @@
 
   <section class="panel">
     <h2>Add movie</h2>
-    {# Static form for now: it does not submit anywhere yet #}
-    <form onsubmit="return false;">
+    <form action="{{ url_for('admin.new_movie') }}" method="post" enctype="multipart/form-data">
       <label for="title">Title</label>
       <input id="title" name="title" type="text" required>
       <label for="genre">Genre</label>
       <input id="genre" name="genre" type="text">
       <label for="duration">Duration (min)</label>
-      <input id="duration" name="duration" type="number" min="1">
+      <input id="duration" name="duration" type="number" min="1" required>
       <label for="age_rating">Age rating</label>
       <select id="age_rating" name="age_rating">
         <option>G</option><option>PG</option><option>PG-13</option><option>R</option>
       </select>
-      <label for="poster">Poster (image path or URL)</label>
-      <input id="poster" name="poster" type="text">
+      <label for="poster">Poster (image, max 2 MiB)</label>
+      <input id="poster" name="poster" type="file" accept="image/*">
       <label for="synopsis">Synopsis</label>
       <textarea id="synopsis" name="synopsis" rows="4"></textarea>
       <button type="submit" class="btn btn-block">Save</button>

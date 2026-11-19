@@ -6,7 +6,7 @@
   <section class="panel">
     <h2>Scheduled showtimes</h2>
     <table class="table">
-      <thead><tr><th>Movie</th><th>Screen</th><th>Date</th><th>Time</th><th></th></tr></thead>
+      <thead><tr><th>Movie</th><th>Screen</th><th>Date</th><th>Time</th><th>Booked</th><th></th></tr></thead>
       <tbody>
         {% for s in showtimes %}
         <tr>
@@ -14,11 +14,16 @@
           <td>{{ s.screen.name }}</td>
           <td>{{ s.date.strftime('%d/%m/%Y') }}</td>
           <td>{{ s.time.strftime('%H:%M') }}</td>
+          <td>{{ s.bookings | sum(attribute='num_seats') }} / {{ s.screen.capacity }}</td>
           <td class="actions">
-            <button class="btn btn-small btn-secondary" type="button">Edit</button>
-            <button class="btn btn-small btn-danger" type="button">Delete</button>
+            <form action="{{ url_for('admin.delete_showtime', showtime_id=s.id) }}" method="post"
+                  onsubmit="return confirm('Delete this showtime?');">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
           </td>
         </tr>
+        {% else %}
+        <tr><td colspan="6" class="empty">No showtimes yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -26,17 +31,29 @@
 
   <section class="panel">
     <h2>New showtime</h2>
-    <form onsubmit="return false;">
-      <label for="movie_id">Movie ID</label>
-      <input id="movie_id" name="movie_id" type="number" min="1">
-      <label for="screen_id">Screen ID</label>
-      <input id="screen_id" name="screen_id" type="number" min="1">
+    {% if movies and screens %}
+    <form action="{{ url_for('admin.new_showtime') }}" method="post">
+      <label for="movie_id">Movie</label>
+      <select id="movie_id" name="movie_id" required>
+        {% for m in movies %}
+          <option value="{{ m.id }}">{{ m.title }} ({{ m.duration }} min)</option>
+        {% endfor %}
+      </select>
+      <label for="screen_id">Screen</label>
+      <select id="screen_id" name="screen_id" required>
+        {% for sc in screens %}
+          <option value="{{ sc.id }}">{{ sc.name }} ({{ sc.capacity }} seats)</option>
+        {% endfor %}
+      </select>
       <label for="date">Date</label>
-      <input id="date" name="date" type="date">
+      <input id="date" name="date" type="date" required>
       <label for="time">Time</label>
-      <input id="time" name="time" type="time">
+      <input id="time" name="time" type="time" required>
       <button type="submit" class="btn btn-block">Save</button>
     </form>
+    {% else %}
+    <p class="empty">Add a movie first{% if not screens %} (and there must be at least one screen){% endif %}.</p>
+    {% endif %}
   </section>
 </div>
 {% endblock %}

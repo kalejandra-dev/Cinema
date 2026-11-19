@@ -18,10 +18,19 @@
             {% else %}<span class="tag tag-off">Sold out</span>{% endif %}
           </td>
           <td class="actions">
-            <button class="btn btn-small btn-secondary" type="button">Edit</button>
-            <button class="btn btn-small btn-danger" type="button">Delete</button>
+            <form action="{{ url_for('admin.toggle_food', food_id=item.id) }}" method="post">
+              <button class="btn btn-small btn-secondary" type="submit">
+                {{ "Mark sold out" if item.available else "Mark available" }}
+              </button>
+            </form>
+            <form action="{{ url_for('admin.delete_food', food_id=item.id) }}" method="post"
+                  onsubmit="return confirm('Delete this item?');">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
           </td>
         </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty">No items yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -29,13 +38,13 @@
 
   <section class="panel">
     <h2>Add item</h2>
-    <form onsubmit="return false;">
+    <form action="{{ url_for('admin.new_food') }}" method="post">
       <label for="name">Name</label>
       <input id="name" name="name" type="text" required>
       <label for="description">Description</label>
       <textarea id="description" name="description" rows="3"></textarea>
       <label for="price">Price (€)</label>
-      <input id="price" name="price" type="number" step="0.01" min="0">
+      <input id="price" name="price" type="number" step="0.01" min="0" required>
       <label class="checkbox"><input type="checkbox" name="available" checked> Available</label>
       <button type="submit" class="btn btn-block">Save</button>
     </form>
