@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from . import db
-from .model import Movie, Screen, Showtime, FoodItem
+from .model import Movie, Screen, Showtime, FoodItem, Package, PackageItem
 from .auth import admin_required
 
 bp = Blueprint("admin", __name__)
@@ -233,3 +233,131 @@ def delete_food(food_id):
     db.session.commit()
     flash(f"'{item.name}' deleted.")
     return redirect(url_for("admin.manage_food"))
+
+# ====== Packages (tickets + food, with a discount) ======
+
+MAX_PACKAGE_TICKETS = 10
+MAX_PACKAGE_ITEM_QUANTITY = 10
+
+
+def read_package_form(form, food):
+    """Read and check the fields of the package forms (new and edit).
+
+    Returns (name, description, ticket_quantity, price, contents), where
+    contents is a list of (FoodItem, quantity), or None if something is not valid.
+    """
+    name = form.get("name", "").strip()
+    try:
+        ticket_quantity = int(form.get("ticket_quantity", ""))
+        price = Decimal(form.get("price", ""))
+    except (ValueError, InvalidOperation):
+        return None
+    if (not name or not 1 <= ticket_quantity <= MAX_PACKAGE_TICKETS
+            or not price.is_finite() or price < 0):
+        return None
+
+    contents = []
+    for item in food:
+        value = form.get(f"item_{item.id}", "") or "0"
+        try:
+            quantity = int(value)
+        except ValueError:
+            return None
+        if not 0 <= quantity <= MAX_PACKAGE_ITEM_QUANTITY:
+            return None
+        if quantity > 0:
+            contents.append((item, quantity))
+    if not contents:
+        return None  # a package must include some food or drink
+    return name, form.get("description", "").strip(), ticket_quantity, price, contents
+
+
+def all_food():
+    return db.session.scalars(db.select(FoodItem).order_by(FoodItem.name)).all()
+
+
+@bp.route("/packages")
+@admin_required
+def manage_packages():
+    packages = db.session.scalars(db.select(Package).order_by(Package.name)).all()
+    return render_template("admin/manage_packages.html",
+                           packages=packages, food=all_food())
+
+
+@bp.route("/packages/new", methods=["POST"])
+@admin_required
+def new_package():
+    data = read_package_form(request.form, all_food())
+    if data is None:
+        flash("A name, 1 to 10 tickets, a valid price and at least one food item are required.")
+        return redirect(url_for("admin.manage_packages"))
+    name, description, ticket_quantity, price, contents = data
+
+    package = Package(name=name, description=description,
+                      ticket_quantity=ticket_quantity, price=price)
+    for item, quantity in contents:
+        package.items.append(PackageItem(food_item=item, quantity=quantity))
+    db.session.add(package)
+    db.session.commit()
+    flash(f"Package '{name}' added.")
+    return redirect(url_for("admin.manage_packages"))
+
+
+@bp.route("/packages/<int:package_id>/edit")
+@admin_required
+def edit_package(package_id):
+    package = db.get_or_404(Package, package_id)
+    # Current quantity of each food item in the package, to fill in the form
+    quantities = {item.food_item_id: item.quantity for item in package.items}
+    return render_template("admin/edit_package.html", package=package,
+                           food=all_food(), quantities=quantities)
+
+
+@bp.route("/packages/<int:package_id>/edit", methods=["POST"])
+@admin_required
+def edit_package_post(package_id):
+    package = db.get_or_404(Package, package_id)
+    data = read_package_form(request.form, all_food())
+    if data is None:
+        flash("A name, 1 to 10 tickets, a valid price and at least one food item are required.")
+        return redirect(url_for("admin.edit_package", package_id=package.id))
+    package.name, package.description, package.ticket_quantity, package.price, contents = data
+    package.available = "available" in request.form
+
+    # Update the food of the package: change quantities, add new items, remove the rest
+    new_quantities = {item.id: quantity for item, quantity in contents}
+    for package_item in list(package.items):
+        if package_item.food_item_id in new_quantities:
+            package_item.quantity = new_quantities.pop(package_item.food_item_id)
+        else:
+            package.items.remove(package_item)   # deleted (delete-orphan)
+    for item, quantity in contents:
+        if item.id in new_quantities:
+            package.items.append(PackageItem(food_item=item, quantity=quantity))
+
+    db.session.commit()
+    flash(f"Package '{package.name}' updated.")
+    return redirect(url_for("admin.manage_packages"))
+
+
+@bp.route("/packages/<int:package_id>/toggle", methods=["POST"])
+@admin_required
+def toggle_package(package_id):
+    package = db.get_or_404(Package, package_id)
+    package.available = not package.available
+    db.session.commit()
+    flash(f"Package '{package.name}' is now {'available' if package.available else 'hidden'}.")
+    return redirect(url_for("admin.manage_packages"))
+
+
+@bp.route("/packages/<int:package_id>/delete", methods=["POST"])
+@admin_required
+def delete_package(package_id):
+    package = db.get_or_404(Package, package_id)
+    if package.booking_packages:
+        flash(f"'{package.name}' is used in bookings. Hide it instead.")
+        return redirect(url_for("admin.manage_packages"))
+    db.session.delete(package)   # its PackageItems are deleted too (cascade)
+    db.session.commit()
+    flash(f"Package '{package.name}' deleted.")
+    return redirect(url_for("admin.manage_packages"))

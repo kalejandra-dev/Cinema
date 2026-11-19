@@ -423,3 +423,17 @@ button[type="submit"]:disabled {
 .booking-card.past .booking-poster-link { flex-basis: 60px; }
 .booking-card.past img.booking-poster,
 .booking-card.past .booking-poster { width: 60px; }
+
+/* ----- Packages ----- */
+.warning { color: var(--danger); font-weight: 600; }
+.field-title { margin: 1rem 0 .3rem; font-size: .9rem; color: var(--muted); }
+.package-items td { padding: .3rem .5rem; }
+.package-items input { width: 70px; }
+
+/* ----- Booking steps (1. Seats → 2. Food & drinks) ----- */
+.booking-steps { display: flex; gap: 1.5rem; list-style: none; padding: 0; margin: .25rem 0 1rem; }
+.booking-steps li { color: var(--muted); font-weight: 600; padding-bottom: .25rem; }
+.booking-steps li.current { color: var(--text); border-bottom: 3px solid var(--accent); }
+.booking-steps li.done a { color: var(--muted); }
+.summary .btn-secondary { margin-top: .5rem; }
+.panel .table + h2 { margin-top: 1.75rem; }   /* space between Packages and Individual items */

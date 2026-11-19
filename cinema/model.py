@@ -233,7 +233,7 @@ class FoodItem(db.Model):
 
 
 class Package(db.Model):
-
+    
     __tablename__="package"
 
     id:Mapped[int] = mapped_column(primary_key=True)
@@ -248,13 +248,29 @@ class Package(db.Model):
         Numeric(10,2)
     )
 
+    available: Mapped[bool] = mapped_column(default=True)
+
+    # delete-orphan: removing a PackageItem from package.items deletes its row
     items: Mapped[list["PackageItem"]] = relationship(
-        back_populates="package"
+        back_populates="package",
+        cascade="all, delete-orphan"
     )
 
     booking_packages: Mapped[list["BookingPackage"]] = relationship(
         back_populates="package"
     )
+
+    @property
+    def is_available(self):
+        """It can be booked: not hidden by staff and none of its food is sold out."""
+        return self.available and all(item.food_item.available for item in self.items)
+
+    @property
+    def contents(self):
+        """Text like '2 tickets + 1 × Popcorn, 2 × Soda'."""
+        tickets = f"{self.ticket_quantity} ticket{'s' if self.ticket_quantity != 1 else ''}"
+        food = ", ".join(f"{item.quantity} × {item.food_item.name}" for item in self.items)
+        return f"{tickets} + {food}" if food else tickets
 
 
 class PackageItem(db.Model):
@@ -312,8 +328,6 @@ class BookingItem(db.Model):
     )
 
 
-
-
 class BookingPackage(db.Model):
     __tablename__ = "booking_package"
 
@@ -340,7 +354,6 @@ class BookingPackage(db.Model):
     package: Mapped["Package"] = relationship(
         back_populates="booking_packages"
     )
-
 
 
 

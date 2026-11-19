@@ -20,6 +20,7 @@
           <a href="{{ url_for('admin.manage_movies') }}">Manage movies</a>
           <a href="{{ url_for('admin.manage_showtimes') }}">Manage showtimes</a>
           <a href="{{ url_for('admin.manage_food') }}">Manage food</a>
+          <a href="{{ url_for('admin.manage_packages') }}">Manage packages</a>
         {% endif %}
         <span class="user-badge">{{ current_user.email }}</span>
         <a href="{{ url_for('auth.logout') }}">Log out</a>

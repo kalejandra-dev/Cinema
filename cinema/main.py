@@ -11,11 +11,12 @@ from sqlalchemy.exc import IntegrityError
 from . import db
 from .auth import customer_required
 from .model import (
-    Movie, Showtime, Booking, BookedSeat, BookingItem, FoodItem, TicketPrice,
+    Movie, Showtime, Booking, BookedSeat, BookingItem, BookingPackage,
+    FoodItem, Package, TicketPrice,
 )
 
 bp = Blueprint("main", __name__)
-MAX_FOOD_QUANTITY = 10  # per item and booking (same as max="10" in booking.html)
+MAX_QUANTITY = 10       # per food item or package in a booking (max="10" in the templates)
 DAYS_AHEAD = 7          # the billboard shows showtimes from now to 7 days ahead
 
 
@@ -53,24 +54,58 @@ def all_seats(screen):
             for row, numbers in screen.seat_layout()
             for number in numbers}
 
-def food_quantities(form, food):
-    """Read the food_<id> inputs of the booking form.
+def read_quantities(form, prefix, things):
+    """Read the <prefix>_<id> inputs of the booking form (food_3, package_1...).
 
-    Returns a list of (FoodItem, quantity) with quantity > 0,
+    Returns a list of (thing, quantity) with quantity > 0,
     or None if some quantity is not valid.
     """
     chosen = []
-    for item in food:
-        value = form.get(f"food_{item.id}", "") or "0"
+    for thing in things:
+        value = form.get(f"{prefix}_{thing.id}", "") or "0"
         try:
             quantity = int(value)
         except ValueError:
             return None
-        if quantity < 0 or quantity > MAX_FOOD_QUANTITY:
+        if quantity < 0 or quantity > MAX_QUANTITY:
             return None
         if quantity > 0:
-            chosen.append((item, quantity))
+            chosen.append((thing, quantity))
     return chosen
+
+
+def available_packages():
+    packages = db.session.scalars(db.select(Package).order_by(Package.price)).all()
+    return [package for package in packages if package.is_available]
+
+
+def available_food():
+    return db.session.scalars(
+        db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
+        .order_by(FoodItem.name)
+    ).all()
+
+
+def check_seats(showtime, seats):
+    """Return an error message, or None if all these seats can be booked."""
+    if not seats:
+        return "Please choose at least one seat."
+    if not seats <= all_seats(showtime.screen):
+        return "Some of those seats don't exist."
+    already_taken = seats & taken_seats(showtime)
+    if already_taken:
+        return "Sorry, these seats are already taken: " + ", ".join(sorted(already_taken))
+    return None
+
+
+def sorted_seats(seats):
+    """Seat labels in order: A1, A2, ..., A10, B1..."""
+    return sorted(seats, key=lambda label: (label[0], int(label[1:])))
+
+
+def showtime_started(showtime):
+    flash("This showtime has already started. Please choose another one.")
+    return redirect(url_for("main.movie_detail", movie_id=showtime.movie_id))
 
 # ====== Public pages ======
 
@@ -109,72 +144,113 @@ def movie_poster(movie_id):
 
 # ====== Bookings ======
 
-@bp.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
+# Booking has two steps:
+#   1. booking:      choose the seats (GET, the form sends them to step 2 in the URL)
+#   2. booking_food: choose packages and food (GET, seats come as ?seats=C5&seats=C6)
+#   confirm_booking: saves the booking (POST, seats come again in hidden fields)
+
+@bp.route("/booking/<int:showtime_id>")
 @customer_required
 def booking(showtime_id):
     showtime = db.get_or_404(Showtime, showtime_id)
     if has_started(showtime):
-        flash("This showtime has already started. Please choose another one.")
-        return redirect(url_for("main.movie_detail", movie_id=showtime.movie_id))
-
-    food = db.session.scalars(
-        db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
-    ).all()
-    price_per_seat = ticket_price_for(showtime)
-
-    if request.method == "POST":
-        chosen = set(request.form.getlist("seats"))
-        if not chosen:
-            flash("Please choose at least one seat.")
-            return redirect(url_for("main.booking", showtime_id=showtime_id))
-        if not chosen <= all_seats(showtime.screen):
-            abort(400, "Invalid seat")
-        already_taken = chosen & taken_seats(showtime)
-        if already_taken:
-            flash("Sorry, these seats are already taken: "
-                  + ", ".join(sorted(already_taken)))
-            return redirect(url_for("main.booking", showtime_id=showtime_id))
-
-        chosen_food = food_quantities(request.form, food)
-        if chosen_food is None:
-            flash(f"Food quantities must be between 0 and {MAX_FOOD_QUANTITY}.")
-            return redirect(url_for("main.booking", showtime_id=showtime_id))
-
-        new_booking = Booking(
-            user_id=flask_login.current_user.id,
-            showtime_id=showtime.id,
-            num_seats=len(chosen),
-            total_price=price_per_seat * len(chosen),
-        )
-        for label in chosen:
-            new_booking.seats.append(BookedSeat(
-                showtime_id=showtime.id,
-                seat_row=label[0],
-                seat_number=int(label[1:]),
-            ))
-        for item, quantity in chosen_food:
-            # Save the price paid now, in case the menu price changes later
-            new_booking.items.append(BookingItem(
-                food_item_id=item.id,
-                quantity=quantity,
-                price=item.price,
-            ))
-            new_booking.total_price += item.price * quantity
-            
-        db.session.add(new_booking)
-        try:
-            db.session.commit()
-        except IntegrityError:
-            # Someone else booked one of these seats a moment ago
-            db.session.rollback()
-            flash("Sorry, one of those seats was just taken. Please choose again.")
-            return redirect(url_for("main.booking", showtime_id=showtime_id))
-        flash("Booking confirmed.")
-        return redirect(url_for("main.my_bookings"))
-
+        return showtime_started(showtime)
+    # Seats already chosen, when coming back from step 2 with "Change seats"
+    selected = set(request.args.getlist("seats"))
     return render_template("main/booking.html", showtime=showtime,
-                           food=food, price_per_seat=price_per_seat,
-                           taken=taken_seats(showtime))
+                           price_per_seat=ticket_price_for(showtime),
+                           taken=taken_seats(showtime), selected=selected)
+
+
+@bp.route("/booking/<int:showtime_id>/food")
+@customer_required
+def booking_food(showtime_id):
+    showtime = db.get_or_404(Showtime, showtime_id)
+    if has_started(showtime):
+        return showtime_started(showtime)
+    seats = set(request.args.getlist("seats"))
+    error = check_seats(showtime, seats)
+    if error:
+        flash(error)
+        return redirect(url_for("main.booking", showtime_id=showtime.id))
+    return render_template("main/booking_food.html", showtime=showtime,
+                           seats=sorted_seats(seats),
+                           price_per_seat=ticket_price_for(showtime),
+                           packages=available_packages(), food=available_food())
+
+
+@bp.route("/booking/<int:showtime_id>/confirm", methods=["POST"])
+@customer_required
+def confirm_booking(showtime_id):
+    showtime = db.get_or_404(Showtime, showtime_id)
+    if has_started(showtime):
+        return showtime_started(showtime)
+
+    seats = set(request.form.getlist("seats"))
+    error = check_seats(showtime, seats)
+    if error:
+        flash(error)
+        return redirect(url_for("main.booking", showtime_id=showtime.id))
+    back_to_food = url_for("main.booking_food", showtime_id=showtime.id,
+                           seats=sorted_seats(seats))
+
+    if "skip_food" in request.form:          # "No food, just tickets" button
+        chosen_food, chosen_packages = [], []
+    else:
+        chosen_food = read_quantities(request.form, "food", available_food())
+        chosen_packages = read_quantities(request.form, "package", available_packages())
+        if chosen_food is None or chosen_packages is None:
+            flash(f"Quantities must be between 0 and {MAX_QUANTITY}.")
+            return redirect(back_to_food)
+    # Packages include tickets: they can't include more tickets than seats chosen
+    package_tickets = sum(package.ticket_quantity * quantity
+                          for package, quantity in chosen_packages)
+    if package_tickets > len(seats):
+        flash(f"Your packages include {package_tickets} tickets, "
+              f"but you chose {len(seats)} seats.")
+        return redirect(back_to_food)
+
+    price_per_seat = ticket_price_for(showtime)
+    new_booking = Booking(
+        user_id=flask_login.current_user.id,
+        showtime_id=showtime.id,
+        num_seats=len(seats),
+        # seats included in packages are paid with the package price
+        total_price=price_per_seat * (len(seats) - package_tickets),
+    )
+    for label in seats:
+        new_booking.seats.append(BookedSeat(
+            showtime_id=showtime.id,
+            seat_row=label[0],
+            seat_number=int(label[1:]),
+        ))
+    # Save the prices paid now, in case the menu prices change later
+    for package, quantity in chosen_packages:
+        new_booking.packages.append(BookingPackage(
+            package_id=package.id,
+            quantity=quantity,
+            price=package.price,
+        ))
+        new_booking.total_price += package.price * quantity
+    for item, quantity in chosen_food:
+        new_booking.items.append(BookingItem(
+            food_item_id=item.id,
+            quantity=quantity,
+            price=item.price,
+        ))
+        new_booking.total_price += item.price * quantity
+
+    db.session.add(new_booking)
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # Someone else booked one of these seats a moment ago
+        db.session.rollback()
+        flash("Sorry, one of those seats was just taken. Please choose again.")
+        return redirect(url_for("main.booking", showtime_id=showtime.id))
+    flash("Booking confirmed. Enjoy the movie!")
+    return redirect(url_for("main.my_bookings"))
+
 
 @bp.route("/my_bookings")
 @customer_required

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Manage packages{% endblock %}
+{% block content %}
+<h1>Manage packages</h1>
+<div class="admin-layout">
+  <section class="panel">
+    <h2>Packages</h2>
+    <table class="table">
+      <thead><tr><th>Name</th><th>Contents</th><th>Price</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for p in packages %}
+        <tr>
+          <td>{{ p.name }}</td>
+          <td>{{ p.contents }}</td>
+          <td>{{ "%.2f"|format(p.price) }} €</td>
+          <td>
+            {% if p.is_available %}<span class="tag tag-ok">Available</span>
+            {% elif not p.available %}<span class="tag tag-off">Hidden</span>
+            {% else %}<span class="tag tag-off">Food sold out</span>{% endif %}
+          </td>
+          <td class="actions">
+            <a class="btn btn-small btn-secondary" href="{{ url_for('admin.edit_package', package_id=p.id) }}">Edit</a>
+            <form action="{{ url_for('admin.toggle_package', package_id=p.id) }}" method="post">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-small btn-secondary" type="submit">{{ "Hide" if p.available else "Show" }}</button>
+            </form>
+            <form action="{{ url_for('admin.delete_package', package_id=p.id) }}" method="post"
+                  onsubmit="return confirm('Delete this package?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-small btn-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="empty">No packages yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section class="panel">
+    <h2>Add package</h2>
+    <form action="{{ url_for('admin.new_package') }}" method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% include "admin/_package_fields.html" %}
+      <button type="submit" class="btn btn-block">Save</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

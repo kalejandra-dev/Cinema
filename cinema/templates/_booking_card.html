@@ -16,6 +16,13 @@
         {{ b.num_seats }}
       {% endif %}
     </p>
+    {% if b.packages %}
+    <p><strong>Packages:</strong>
+      {% for line in b.packages %}
+        {{ line.quantity }} × {{ line.package.name }}{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </p>
+    {% endif %}
     {% if b.items %}
     <p><strong>Food &amp; drinks:</strong>
       {% for line in b.items %}

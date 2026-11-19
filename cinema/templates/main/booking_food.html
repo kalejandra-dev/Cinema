@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Food &amp; drinks · {{ showtime.movie.title }}{% endblock %}
+{% block content %}
+<h1>Book tickets</h1>
+<ol class="booking-steps">
+  <li class="done"><a href="{{ url_for('main.booking', showtime_id=showtime.id, seats=seats) }}">1. Seats</a></li>
+  <li class="current">2. Food &amp; drinks</li>
+</ol>
+<p class="meta">
+  {{ showtime.movie.title }} · {{ showtime.date.strftime('%a %d/%m/%Y') }} ·
+  {{ showtime.time.strftime('%H:%M') }} · {{ showtime.screen.name }}
+</p>
+
+<form method="post" action="{{ url_for('main.confirm_booking', showtime_id=showtime.id) }}"
+      class="booking-layout" id="food-form"
+      data-price-per-seat="{{ price_per_seat }}" data-seats="{{ seats | length }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {# The seats chosen in step 1 travel with the form, hidden #}
+  {% for seat in seats %}
+  <input type="hidden" name="seats" value="{{ seat }}">
+  {% endfor %}
+
+  <section class="panel">
+    {% if packages %}
+    <h2>Packages</h2>
+    <p class="meta">Tickets and food together, cheaper. The tickets in your packages
+      are used for the seats you chose.</p>
+    <table class="table">
+      <thead><tr><th>Package</th><th>Price</th><th>Qty</th></tr></thead>
+      <tbody>
+        {% for p in packages %}
+        <tr>
+          <td>{{ p.name }}<br><span class="meta">{{ p.contents }}</span></td>
+          <td>{{ "%.2f"|format(p.price) }} €</td>
+          <td><input type="number" name="package_{{ p.id }}" min="0" max="10" value="0" class="qty"
+                     data-package-price="{{ p.price }}" data-tickets="{{ p.ticket_quantity }}"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <h2>Individual items</h2>
+    {% if food %}
+    <table class="table">
+      <thead><tr><th>Item</th><th>Price</th><th>Qty</th></tr></thead>
+      <tbody>
+        {% for item in food %}
+        <tr>
+          <td>{{ item.name }}<br><span class="meta">{{ item.description }}</span></td>
+          <td>{{ "%.2f"|format(item.price) }} €</td>
+          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"
+                     data-price="{{ item.price }}"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No food available right now.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <h2>Your booking</h2>
+    <div class="summary">
+      <p>Seats: <strong>{{ seats | join(', ') }}</strong></p>
+      <p>Tickets: <span id="seats-total">{{ "%.2f"|format(price_per_seat * seats|length) }}</span> €</p>
+      {% if packages %}
+      <p>Packages: <span id="packages-total">0.00</span> €</p>
+      {% endif %}
+      <p>Food &amp; drinks: <span id="food-total">0.00</span> €</p>
+      <p id="package-warning" class="warning" hidden></p>
+      <p>Total: <strong id="booking-total" class="price">{{ "%.2f"|format(price_per_seat * seats|length) }}</strong> €</p>
+      <button type="submit" class="btn btn-block" id="confirm-button">Confirm booking</button>
+      <button type="submit" name="skip_food" value="1" class="btn btn-secondary btn-block">
+        No food, just tickets
+      </button>
+      <p class="form-footer">
+        <a href="{{ url_for('main.booking', showtime_id=showtime.id, seats=seats) }}">&larr; Change seats</a>
+      </p>
+    </div>
+  </section>
+</form>
+
+<script src="{{ url_for('static', filename='booking_food.js') }}"></script>
+{% endblock %}

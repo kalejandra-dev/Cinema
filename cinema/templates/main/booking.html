@@ -2,14 +2,18 @@
 {% block title %}Book · {{ showtime.movie.title }}{% endblock %}
 {% block content %}
 <h1>Book tickets</h1>
+<ol class="booking-steps">
+  <li class="current">1. Seats</li>
+  <li>2. Food &amp; drinks</li>
+</ol>
 <p class="meta">
   {{ showtime.movie.title }} · {{ showtime.date.strftime('%a %d/%m/%Y') }} ·
   {{ showtime.time.strftime('%H:%M') }} · {{ showtime.screen.name }}
 </p>
 
-<form method="post" class="booking-layout" id="booking-form"
-      data-price-per-seat="{{ price_per_seat }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{# GET: choosing seats doesn't change anything yet, it just goes to step 2 #}
+<form method="get" action="{{ url_for('main.booking_food', showtime_id=showtime.id) }}"
+      class="booking-layout" id="seats-form" data-price-per-seat="{{ price_per_seat }}">
   <section class="panel">
     <h2>Choose your seats</h2>
 
@@ -22,7 +26,7 @@
           {% set label = row ~ number %}
           <label class="seat" title="Seat {{ label }}">
             <input type="checkbox" name="seats" value="{{ label }}"
-                   {% if label in taken %}disabled{% endif %}>
+                   {% if label in taken %}disabled{% elif label in selected %}checked{% endif %}>
             <span>{{ number }}</span>
           </label>
         {% endfor %}
@@ -36,38 +40,15 @@
       <li><span class="seat-icon seat-selected"></span> Selected</li>
       <li><span class="seat-icon seat-taken"></span> Taken</li>
     </ul>
-
-    <p class="meta">
-      Price per seat: <strong class="price">{{ "%.2f"|format(price_per_seat) }} €</strong>
-    </p>
   </section>
 
   <section class="panel">
-    <h2>Food &amp; drinks</h2>
-    {% if food %}
-    <table class="table">
-      <thead><tr><th>Item</th><th>Price</th><th>Qty</th></tr></thead>
-      <tbody>
-        {% for item in food %}
-        <tr>
-          <td>{{ item.name }}<br><span class="meta">{{ item.description }}</span></td>
-          <td>{{ "%.2f"|format(item.price) }} €</td>
-          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"
-            data-price="{{ item.price }}"></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="empty">No food available right now.</p>
-    {% endif %}
-
+    <h2>Your seats</h2>
     <div class="summary">
       <p>Seats: <strong id="selected-seats">none</strong></p>
-      <p>Tickets: <span id="seats-total">0.00</span> €</p>
-      <p>Food &amp; drinks: <span id="food-total">0.00</span> €</p>
-      <p>Total: <strong id="booking-total" class="price">0.00</strong> €</p>
-      <button type="submit" class="btn btn-block">Confirm booking</button>
+      <p>Price per seat: {{ "%.2f"|format(price_per_seat) }} €</p>
+      <p>Tickets: <strong id="seats-total" class="price">0.00</strong> €</p>
+      <button type="submit" class="btn btn-block">Continue</button>
     </div>
   </section>
 </form>
