@@ -406,3 +406,8 @@ button[type="submit"]:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Admin tables: buttons in one row, short cells on one line */
+.actions form { display: inline-block; margin-left: .3rem; }
+.table td { white-space: nowrap; }
+.table td:nth-child(2) { white-space: normal; }   /* description / genre can wrap */

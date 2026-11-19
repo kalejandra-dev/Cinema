@@ -152,27 +152,62 @@ def manage_food():
     food = db.session.scalars(db.select(FoodItem).order_by(FoodItem.name)).all()
     return render_template("admin/manage_food.html", food=food)
 
+def read_food_form(form):
+    """Read and check the fields of the food forms (new and edit).
+
+    Returns (name, description, price), or None if something is not valid.
+    """
+    name = form.get("name", "").strip()
+    try:
+        price = Decimal(form.get("price", ""))
+    except InvalidOperation:
+        return None
+    if not name or not price.is_finite() or price < 0:
+        return None
+    return name, form.get("description", "").strip(), price
+
 
 @bp.route("/food/new", methods=["POST"])
 @admin_required
 def new_food():
-    name = request.form.get("name", "").strip()
-    try:
-        price = Decimal(request.form.get("price", ""))
-    except InvalidOperation:
-        price = None
-    if not name or price is None or not price.is_finite() or price < 0:
+    data = read_food_form(request.form)
+    if data is None:
         flash("A name and a valid price are required.")
         return redirect(url_for("admin.manage_food"))
+    name, description, price = data
 
     db.session.add(FoodItem(
         name=name,
-        description=request.form.get("description", "").strip(),
+        description=description,
         price=price,
         available="available" in request.form,  # unchecked checkboxes are not sent
     ))
     db.session.commit()
     flash(f"'{name}' added.")
+    return redirect(url_for("admin.manage_food"))
+
+
+@bp.route("/food/<int:food_id>/edit")
+@admin_required
+def edit_food(food_id):
+    item = db.get_or_404(FoodItem, food_id)
+    return render_template("admin/edit_food.html", item=item)
+
+
+@bp.route("/food/<int:food_id>/edit", methods=["POST"])
+@admin_required
+def edit_food_post(food_id):
+    item = db.get_or_404(FoodItem, food_id)
+    data = read_food_form(request.form)
+    if data is None:
+        flash("A name and a valid price are required.")
+        return redirect(url_for("admin.edit_food", food_id=item.id))
+
+    # Bookings already made keep the price they paid (BookingItem.price)
+    item.name, item.description, item.price = data
+    item.available = "available" in request.form
+    db.session.commit()
+    flash(f"'{item.name}' updated.")
     return redirect(url_for("admin.manage_food"))
 
 
