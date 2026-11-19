@@ -411,3 +411,15 @@ button[type="submit"]:disabled {
 .actions form { display: inline-block; margin-left: .3rem; }
 .table td { white-space: nowrap; }
 .table td:nth-child(2) { white-space: normal; }   /* description / genre can wrap */
+
+/* ----- My bookings: poster in each booking ----- */
+.bookings-section { margin-bottom: 2rem; }
+.booking-info { flex: 1; }
+.booking-poster-link { flex: 0 0 90px; }
+.booking-card img.booking-poster,
+.booking-card .booking-poster { width: 90px; border-radius: 6px; padding: 0; }
+.booking-card .booking-poster span { display: none; }   /* no title on the small placeholder */
+/* Past bookings: smaller, so the upcoming ones stand out */
+.booking-card.past .booking-poster-link { flex-basis: 60px; }
+.booking-card.past img.booking-poster,
+.booking-card.past .booking-poster { width: 60px; }

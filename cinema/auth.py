@@ -10,7 +10,17 @@ from .model import User, UserRole
 bp = Blueprint("auth", __name__)
 
 
-# ====== Access control for staff pages (used by admin.py) ======
+# ====== Access control (used by main.py and admin.py) ======
+def customer_required(view):
+    """Like @flask_login.login_required, but the user must be a customer
+    (only customers can book seats and see their bookings)."""
+    @wraps(view)
+    @flask_login.login_required
+    def wrapper(*args, **kwargs):
+        if flask_login.current_user.is_staff:
+            abort(403)
+        return view(*args, **kwargs)
+    return wrapper
 
 def admin_required(view):
     """Like @flask_login.login_required, but the user must also be staff."""

@@ -1,0 +1,33 @@
+{# One booking. Needs: b (Booking) and past (True for bookings of showtimes already shown) #}
+<article class="booking-card{% if past %} past{% endif %}">
+  <a class="booking-poster-link" href="{{ url_for('main.movie_detail', movie_id=b.showtime.movie.id) }}">
+    {% with movie = b.showtime.movie, extra_class = "booking-poster" %}{% include "_poster.html" %}{% endwith %}
+  </a>
+  <div class="booking-info">
+    <h2>{{ b.showtime.movie.title }}</h2>
+    <p class="meta">
+      {{ b.showtime.date.strftime('%a %d/%m/%Y') }} · {{ b.showtime.time.strftime('%H:%M') }} ·
+      {{ b.showtime.screen.name }}
+    </p>
+    <p><strong>Seats:</strong>
+      {% if b.seats %}
+        {{ b.seats | sort(attribute='seat_row,seat_number') | map(attribute='label') | join(', ') }}
+      {% else %}
+        {{ b.num_seats }}
+      {% endif %}
+    </p>
+    {% if b.items %}
+    <p><strong>Food &amp; drinks:</strong>
+      {% for line in b.items %}
+        {{ line.quantity }} × {{ line.food_item.name }}{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </p>
+    {% endif %}
+    <p class="meta">Booked on {{ b.booking_date.strftime('%d/%m/%Y %H:%M') }}</p>
+  </div>
+  <div class="booking-side">
+    <span class="status">{{ "Watched" if past else "Upcoming" }}</span>
+    <span class="price">{{ "%.2f"|format(b.total_price) }} €</span>
+    <span class="meta">Booking #{{ b.id }}</span>
+  </div>
+</article>

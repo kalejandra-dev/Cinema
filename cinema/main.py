@@ -9,7 +9,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from . import db
-
+from .auth import customer_required
 from .model import (
     Movie, Showtime, Booking, BookedSeat, BookingItem, FoodItem, TicketPrice,
 )
@@ -19,17 +19,19 @@ MAX_FOOD_QUANTITY = 10  # per item and booking (same as max="10" in booking.html
 DAYS_AHEAD = 7          # the billboard shows showtimes from now to 7 days ahead
 
 
+def not_started():
+    """SQL condition for showtimes that have not started yet.
+    Use it inside .where(...)."""
+    now = datetime.datetime.now()
+    return or_(Showtime.date > now.date(),
+               and_(Showtime.date == now.date(), Showtime.time > now.time()))
+
+
 def upcoming():
     """SQL condition for showtimes that have not started yet and are
-    at most DAYS_AHEAD days from today. Use it inside .where(...)."""
-    now = datetime.datetime.now()
-    last_day = now.date() + datetime.timedelta(days=DAYS_AHEAD)
-    return and_(
-        or_(Showtime.date > now.date(),
-            and_(Showtime.date == now.date(), Showtime.time > now.time())),
-        Showtime.date <= last_day,
-    )
-
+    at most DAYS_AHEAD days from today."""
+    last_day = datetime.date.today() + datetime.timedelta(days=DAYS_AHEAD)
+    return and_(not_started(), Showtime.date <= last_day)
 
 def has_started(showtime):
     return datetime.datetime.combine(showtime.date, showtime.time) <= datetime.datetime.now()
@@ -108,7 +110,7 @@ def movie_poster(movie_id):
 # ====== Bookings ======
 
 @bp.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
-@flask_login.login_required
+@customer_required
 def booking(showtime_id):
     showtime = db.get_or_404(Showtime, showtime_id)
     if has_started(showtime):
@@ -175,11 +177,20 @@ def booking(showtime_id):
                            taken=taken_seats(showtime))
 
 @bp.route("/my_bookings")
-@flask_login.login_required
+@customer_required
 def my_bookings():
-    bookings = db.session.scalars(
+    mine = (
         db.select(Booking)
-          .where(Booking.user_id == flask_login.current_user.id)
-          .order_by(Booking.booking_date.desc())
+        .join(Booking.showtime)
+        .where(Booking.user_id == flask_login.current_user.id)
+    )
+    # Bookings for showtimes that haven't started yet go first (shown prominently)
+    upcoming_bookings = db.session.scalars(
+        mine.where(not_started()).order_by(Showtime.date, Showtime.time)
     ).all()
-    return render_template("main/my_bookings.html", bookings=bookings)
+    past_bookings = db.session.scalars(
+        mine.where(~not_started()).order_by(Showtime.date.desc(), Showtime.time.desc())
+    ).all()
+    return render_template("main/my_bookings.html",
+                           upcoming_bookings=upcoming_bookings,
+                           past_bookings=past_bookings)
