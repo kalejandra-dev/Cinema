@@ -1,9 +1,11 @@
+import datetime
 from decimal import Decimal
 
 import flask_login
 from flask import (
     Blueprint, render_template, request, redirect, url_for, flash, abort
 )
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 
 from . import db
@@ -14,7 +16,23 @@ from .model import (
 
 bp = Blueprint("main", __name__)
 MAX_FOOD_QUANTITY = 10  # per item and booking (same as max="10" in booking.html)
+DAYS_AHEAD = 7          # the billboard shows showtimes from now to 7 days ahead
 
+
+def upcoming():
+    """SQL condition for showtimes that have not started yet and are
+    at most DAYS_AHEAD days from today. Use it inside .where(...)."""
+    now = datetime.datetime.now()
+    last_day = now.date() + datetime.timedelta(days=DAYS_AHEAD)
+    return and_(
+        or_(Showtime.date > now.date(),
+            and_(Showtime.date == now.date(), Showtime.time > now.time())),
+        Showtime.date <= last_day,
+    )
+
+
+def has_started(showtime):
+    return datetime.datetime.combine(showtime.date, showtime.time) <= datetime.datetime.now()
 
 def ticket_price_for(showtime):
     """Price per seat, taken from TicketPrice by day of the week."""
@@ -56,16 +74,24 @@ def food_quantities(form, food):
 
 @bp.route("/")
 def index():
-    movies = db.session.scalars(db.select(Movie)).all()
+    # Movies with at least one upcoming showtime
+    showing = db.select(Showtime.movie_id).where(upcoming())
+    query = db.select(Movie).where(Movie.id.in_(showing)).order_by(Movie.title)
+    movies = db.session.scalars(query).all()
     return render_template("main/index.html", movies=movies)
 
 
 @bp.route("/movie/<int:movie_id>")
 def movie_detail(movie_id):
-    movie = db.session.get(Movie, movie_id)
-    if movie is None:
-        abort(404)
-    return render_template("main/movie_detail.html", movie=movie)
+    movie = db.get_or_404(Movie, movie_id)
+    query = (
+        db.select(Showtime)
+        .where(Showtime.movie_id == movie.id)
+        .where(upcoming())
+        .order_by(Showtime.date, Showtime.time)
+    )
+    showtimes = db.session.scalars(query).all()
+    return render_template("main/movie_detail.html", movie=movie, showtimes=showtimes)
 
 @bp.route("/movie/<int:movie_id>/poster")
 def movie_poster(movie_id):
@@ -84,9 +110,10 @@ def movie_poster(movie_id):
 @bp.route("/booking/<int:showtime_id>", methods=["GET", "POST"])
 @flask_login.login_required
 def booking(showtime_id):
-    showtime = db.session.get(Showtime, showtime_id)
-    if showtime is None:
-        abort(404)
+    showtime = db.get_or_404(Showtime, showtime_id)
+    if has_started(showtime):
+        flash("This showtime has already started. Please choose another one.")
+        return redirect(url_for("main.movie_detail", movie_id=showtime.movie_id))
 
     food = db.session.scalars(
         db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
