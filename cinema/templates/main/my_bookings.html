@@ -2,40 +2,32 @@
 {% block title %}My bookings{% endblock %}
 {% block content %}
 <h1>My bookings</h1>
-{% if bookings %}
-<div class="booking-list">
-  {% for b in bookings %}
-  <article class="booking-card">
-    <div>
-      <h2>{{ b.showtime.movie.title }}</h2>
-      <p class="meta">
-        {{ b.showtime.date.strftime('%a %d/%m/%Y') }} · {{ b.showtime.time.strftime('%H:%M') }} ·
-        {{ b.showtime.screen.name }}
-      </p>
-      <p><strong>Seats:</strong>
-        {% if b.seats %}
-          {{ b.seats | sort(attribute='seat_row,seat_number') | map(attribute='label') | join(', ') }}
-        {% else %}
-          {{ b.num_seats }}
-        {% endif %}
-      </p>
-      {% if b.items %}
-      <p><strong>Food &amp; drinks:</strong>
-        {% for line in b.items %}
-          {{ line.quantity }} × {{ line.food_item.name }}{% if not loop.last %}, {% endif %}
-        {% endfor %}
-      </p>
-      {% endif %}
-      <p class="meta">Booked on {{ b.booking_date.strftime('%d/%m/%Y %H:%M') }}</p>
-    </div>
-    <div class="booking-side">
-      <span class="price">{{ "%.2f"|format(b.total_price) }} €</span>
-      <span class="meta">Booking #{{ b.id }}</span>
-    </div>
-  </article>
-  {% endfor %}
-</div>
-{% else %}
+
+{% if not upcoming_bookings and not past_bookings %}
 <p class="empty">You have no bookings yet. <a href="{{ url_for('main.index') }}">See what's on</a></p>
+{% endif %}
+
+{% if upcoming_bookings %}
+<section class="bookings-section">
+  <h2>Upcoming</h2>
+  <div class="booking-list">
+    {% for b in upcoming_bookings %}
+      {% set past = False %}
+      {% include "_booking_card.html" %}
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if past_bookings %}
+<section class="bookings-section">
+  <h2>Past bookings</h2>
+  <div class="booking-list">
+    {% for b in past_bookings %}
+      {% set past = True %}
+      {% include "_booking_card.html" %}
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
 {% endblock %}

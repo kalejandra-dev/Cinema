@@ -18,6 +18,7 @@
             {% else %}<span class="tag tag-off">Sold out</span>{% endif %}
           </td>
           <td class="actions">
+            <a class="btn btn-small btn-secondary" href="{{ url_for('admin.edit_food', food_id=item.id) }}">Edit</a>
             <form action="{{ url_for('admin.toggle_food', food_id=item.id) }}" method="post">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button class="btn btn-small btn-secondary" type="submit">

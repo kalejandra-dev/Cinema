@@ -16,20 +16,24 @@ Cinema/
 └── cinema/
     ├── __init__.py          <-- create_app(), db, LoginManager, CSRFProtect (Backend)
     ├── main.py              <-- billboard, movie detail, poster, booking, my bookings (Backend)
-    ├── auth.py              <-- register, login, logout, admin_required (Backend)
-    ├── admin.py             <-- manage movies / showtimes / food (Backend)
+    ├── auth.py              <-- register, login, logout, customer_required, admin_required (Backend)
+    ├── admin.py             <-- manage movies / showtimes / food / packages (Backend)
     ├── model.py             <-- SQLAlchemy models (Amigo BD)
     ├── commands.py          <-- flask init-db / create-admin / reset-db (Amigo BD)
     ├── templates/           <-- ALL .html files (Amiga HTML)
     │   ├── base.html
-    │   ├── _poster.html
-    │   ├── main/   index.html, movie_detail.html, booking.html, my_bookings.html
+    │   ├── _poster.html, _booking_card.html
+    │   ├── main/   index.html, movie_detail.html, booking.html (step 1: seats),
+    │   │           booking_food.html (step 2: packages + food), my_bookings.html
     │   ├── auth/   login.html, register.html
-    │   └── admin/  manage_movies.html, manage_showtimes.html, manage_food.html
+    │   └── admin/  manage_movies.html, manage_showtimes.html,
+    │               manage_food.html, edit_food.html,
+    │               manage_packages.html, edit_package.html, _package_fields.html
     └── static/              <-- CSS, images, JS (Amiga HTML)
         ├── style.css
         ├── bg_page.jpeg
-        └── seat_map.js
+        ├── seat_map.js      (booking step 1)
+        └── booking_food.js  (booking step 2)
 
 HTML RULES (Amiga HTML)
 -----------------------
@@ -43,23 +47,32 @@ HTML RULES (Amiga HTML)
       Home           -> {{ url_for('main.index') }}
       Movie X        -> {{ url_for('main.movie_detail', movie_id=movie.id) }}
       Poster of X    -> {{ url_for('main.movie_poster', movie_id=movie.id) }}
-      Book showtime  -> {{ url_for('main.booking', showtime_id=s.id) }}
+      Book showtime  -> {{ url_for('main.booking', showtime_id=s.id) }}   (step 1: seats)
+      Step 2         -> form GET to main.booking_food (seats as ?seats=C5&seats=C6)
+      Confirm        -> form POST to main.confirm_booking (seats in hidden fields)
       My bookings    -> {{ url_for('main.my_bookings') }}
       Log in         -> {{ url_for('auth.login') }}
       Register       -> {{ url_for('auth.register') }}
       Log out        -> {{ url_for('auth.logout') }}
       Manage movies  -> {{ url_for('admin.manage_movies') }}
-      (same for admin.manage_showtimes and admin.manage_food)
+      (same for admin.manage_showtimes, admin.manage_food and admin.manage_packages)
   The full list of routes is in README.md.
 - Data each template receives (SQLAlchemy objects, not dicts):
       main/index.html              -> movies     (movies with showtimes in the next 7 days)
       main/movie_detail.html       -> movie, showtimes (upcoming showtimes of that movie)
-      main/booking.html            -> showtime, food, price_per_seat,
-                                      taken (set of taken seat labels, e.g. {"A1", "C5"})
-      main/my_bookings.html        -> bookings   (each one has .seats and .items = food lines)
+      main/booking.html            -> showtime, price_per_seat,
+                                      taken (set of taken seat labels, e.g. {"A1", "C5"}),
+                                      selected (seats already chosen, when coming back)
+      main/booking_food.html       -> showtime, seats (sorted list), price_per_seat,
+                                      packages (available ones), food (available items)
+      main/my_bookings.html        -> upcoming_bookings, past_bookings
+                                      (each booking has .seats, .packages and .items)
       admin/manage_movies.html     -> movies
       admin/manage_showtimes.html  -> showtimes, movies, screens
       admin/manage_food.html       -> food
+      admin/edit_food.html         -> item
+      admin/manage_packages.html   -> packages, food
+      admin/edit_package.html      -> package, food, quantities ({food_item_id: quantity})
 - Logged-in user in templates (Flask-Login):
       current_user.is_authenticated, current_user.email, current_user.is_staff
 
@@ -77,15 +90,19 @@ Models:
                  unique (showtime_id, seat_row, seat_number): a seat can't be booked twice
     FoodItem    (id, name, description, price, available)
     BookingItem (booking_id, food_item_id, quantity, price)   <- price paid per unit
-    Package     (id, name, description, ticket_quantity, price)      (not used yet)
-    PackageItem (package_id, food_item_id, quantity)                 (not used yet)
-    BookingPackage (booking_id, package_id, quantity, price)         (not used yet)
+    Package     (id, name, description, ticket_quantity, price, available)
+                 is_available: not hidden and none of its food is sold out
+                 contents: text like "2 tickets + 1 × Popcorn, 2 × Soda"
+    PackageItem (package_id, food_item_id, quantity)          <- food inside a package
+    BookingPackage (booking_id, package_id, quantity, price)  <- packages in a booking
+                 tickets in packages <= seats of the booking; those seats are not
+                 charged at the normal ticket price
     TicketPrice (day_of_week, price)   0=Mon ... 6=Sun
 
 Basic data created by `flask --app=cinema init-db` (cinema/commands.py):
     Screens: "Screen 1" ... "Screen 6", 100 seats each
     Prices:  Mon/Tue/Thu/Fri 7 €, Wed 5 € (día del espectador), Sat/Sun 11 €
-Movies, showtimes and food are added from the web (staff "Manage" pages).
+Movies, showtimes, food and packages are added from the web (staff "Manage" pages).
 Staff users are created with `flask --app=cinema create-admin`.
 
 In the blueprints, import the models from the package:
@@ -107,7 +124,7 @@ See README.md. Short version (with the venv active and a .env file):
 AFTER PULLING THESE CHANGES (once)
 ----------------------------------
     pip install -r requirements.txt      # new: Flask-Login, Flask-WTF
-    flask --app=cinema reset-db          # tables changed and demo data was removed
+    flask --app=cinema reset-db          # tables changed (packages, posters, seats...)
     flask --app=cinema create-admin      # admin@cinema.com / admin no longer exists
 
 DONE
@@ -115,7 +132,11 @@ DONE
 - Project structure like the labs (app factory + blueprints)
 - Seat map, food and drinks in bookings, live totals
 - Posters stored in the database and served by a route (lab 5)
-- Staff pages: add / delete movies (poster upload), showtimes, food
+- Staff pages: add / delete movies (poster upload) and showtimes;
+  add / edit / sold out / delete food; add / edit / hide / delete packages
+- Packages in bookings (limited by the number of seats)
+- Booking in two steps: seats -> food & drinks (or "No food, just tickets")
+- Only customers can book; My bookings shows upcoming bookings first, with posters
 - Flask-Login (lab 4) and CSRF protection (lab 6)
 - Billboard shows only movies with showtimes in the next 7 days
 - init-db with screens and prices, create-admin command
@@ -124,8 +145,9 @@ TO DO
 -----
 - Connect to the lab MariaDB (mysql+pymysql://... in .env), run init-db + create-admin there
   and test everything from a lab computer.
-- Improve the look of the site (style.css).
-- Optional: edit movies / showtimes / food, cancel bookings, packages (Package models).
+- Improve the look of the site: carousel, Anton font, logo, hover, food images.
+- Additional functionality, e.g. JavaScript that talks to the server asynchronously (fetch).
+- Optional: edit movies / showtimes, cancel bookings.
 
 BRANCHES / MERGING
 ------------------

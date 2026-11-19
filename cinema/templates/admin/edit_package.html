@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ package.name }}{% endblock %}
+{% block content %}
+<section class="form-card">
+  <h1>Edit package</h1>
+  <form action="{{ url_for('admin.edit_package_post', package_id=package.id) }}" method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% include "admin/_package_fields.html" %}
+    <label class="checkbox">
+      <input type="checkbox" name="available" {% if package.available %}checked{% endif %}> Available
+    </label>
+    <button type="submit" class="btn btn-block">Save changes</button>
+  </form>
+  <p class="form-footer"><a href="{{ url_for('admin.manage_packages') }}">Cancel</a></p>
+</section>
+{% endblock %}

@@ -406,3 +406,34 @@ button[type="submit"]:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Admin tables: buttons in one row, short cells on one line */
+.actions form { display: inline-block; margin-left: .3rem; }
+.table td { white-space: nowrap; }
+.table td:nth-child(2) { white-space: normal; }   /* description / genre can wrap */
+
+/* ----- My bookings: poster in each booking ----- */
+.bookings-section { margin-bottom: 2rem; }
+.booking-info { flex: 1; }
+.booking-poster-link { flex: 0 0 90px; }
+.booking-card img.booking-poster,
+.booking-card .booking-poster { width: 90px; border-radius: 6px; padding: 0; }
+.booking-card .booking-poster span { display: none; }   /* no title on the small placeholder */
+/* Past bookings: smaller, so the upcoming ones stand out */
+.booking-card.past .booking-poster-link { flex-basis: 60px; }
+.booking-card.past img.booking-poster,
+.booking-card.past .booking-poster { width: 60px; }
+
+/* ----- Packages ----- */
+.warning { color: var(--danger); font-weight: 600; }
+.field-title { margin: 1rem 0 .3rem; font-size: .9rem; color: var(--muted); }
+.package-items td { padding: .3rem .5rem; }
+.package-items input { width: 70px; }
+
+/* ----- Booking steps (1. Seats → 2. Food & drinks) ----- */
+.booking-steps { display: flex; gap: 1.5rem; list-style: none; padding: 0; margin: .25rem 0 1rem; }
+.booking-steps li { color: var(--muted); font-weight: 600; padding-bottom: .25rem; }
+.booking-steps li.current { color: var(--text); border-bottom: 3px solid var(--accent); }
+.booking-steps li.done a { color: var(--muted); }
+.summary .btn-secondary { margin-top: .5rem; }
+.panel .table + h2 { margin-top: 1.75rem; }   /* space between Packages and Individual items */
