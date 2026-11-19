@@ -4,22 +4,29 @@
     flask --app=cinema reset-db   # DELETE everything and recreate with demo data
 """
 import datetime
+import mimetypes
+import os
 from decimal import Decimal
 
 import click
+from flask import current_app
 from werkzeug.security import generate_password_hash
 
 from . import db
 from .model import Movie, Screen, Showtime, User, UserRole, FoodItem, TicketPrice
 
-# Poster paths are relative to the static/ folder.
-# They must match the image file names EXACTLY (including .jpg / .jpeg).
-POSTERS = {
-    "Dune: Part Two": "posters/dune2.jpeg",
-    "Oppenheimer": "posters/oppenheimer.jpeg",
-    "Spider-Verse": "posters/spider-verse.jpeg",
-}
+def load_poster(filename):
+    """Read a demo poster from static/posters/ to store it in the database.
 
+    Returns the two Movie fields, ready to use as Movie(..., **load_poster(...)).
+    """
+    path = os.path.join(current_app.static_folder, "posters", filename)
+    with open(path, "rb") as file:
+        data = file.read()
+    return {
+        "poster_data": data,
+        "poster_mime_type": mimetypes.guess_type(path)[0],
+    }
 
 def register(app):
     @app.cli.command("init-db")
@@ -53,15 +60,15 @@ def seed_demo():
         Movie(title="Dune: Part Two",
               synopsis="Paul Atreides unites with the Fremen.",
               duration=166, age_rating="PG-13",
-              poster=POSTERS["Dune: Part Two"], genre="Sci-fi"),
+              **load_poster("dune2.jpeg"), genre="Sci-fi"),
         Movie(title="Oppenheimer",
               synopsis="The making of the atomic bomb.",
               duration=180, age_rating="R",
-              poster=POSTERS["Oppenheimer"], genre="Drama"),
+              **load_poster("oppenheimer.jpeg"), genre="Drama"),
         Movie(title="Spider-Verse",
               synopsis="Miles Morales across the multiverse.",
               duration=140, age_rating="PG",
-              poster=POSTERS["Spider-Verse"], genre="Animation"),
+              **load_poster("spider-verse.jpeg"), genre="Animation"),
     ]
     db.session.add_all(movies)
     db.session.flush()

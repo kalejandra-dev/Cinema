@@ -44,6 +44,17 @@ def movie_detail(movie_id):
         abort(404)
     return render_template("main/movie_detail.html", movie=movie)
 
+@bp.route("/movie/<int:movie_id>/poster")
+def movie_poster(movie_id):
+    movie = db.get_or_404(Movie, movie_id)
+    if not movie.poster_data:
+        abort(404, f"Movie {movie_id} does not have a poster")
+    return (
+        movie.poster_data,
+        200,
+        {"Content-Type": movie.poster_mime_type},
+    )
+
 
 # ====== Bookings ======
 
