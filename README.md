@@ -70,7 +70,7 @@ Cinema/                      <- project folder (repository)
 ## Running the app
 
 ```
-flask --debug --app=cinema run
+git switch mainflask --debug --app=cinema run
 ```
 
 Open http://127.0.0.1:5000 in the browser. Stop the server with Ctrl + C.
