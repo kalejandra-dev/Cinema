@@ -85,7 +85,8 @@ def manage_showtimes():
     movies = db.session.scalars(db.select(Movie).order_by(Movie.title)).all()
     screens = db.session.scalars(db.select(Screen).order_by(Screen.name)).all()
     return render_template("admin/manage_showtimes.html",
-                           showtimes=showtimes, movies=movies, screens=screens)
+                           showtimes=showtimes, movies=movies, screens=screens,
+                           today=datetime.date.today().isoformat())
 
 
 def overlapping_showtime(screen, movie, date, time):
@@ -116,6 +117,9 @@ def new_showtime():
         date = time = None
     if not movie or not screen or not date or not time:
         flash("Please choose a movie, a screen, a date and a time.")
+        return redirect(url_for("admin.manage_showtimes"))
+    if datetime.datetime.combine(date, time) <= datetime.datetime.now():
+        flash("The showtime must be in the future.")
         return redirect(url_for("admin.manage_showtimes"))
 
     other = overlapping_showtime(screen, movie, date, time)

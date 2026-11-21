@@ -48,7 +48,7 @@
         {% endfor %}
       </select>
       <label for="date">Date</label>
-      <input id="date" name="date" type="date" required>
+      <input id="date" name="date" type="date" min="{{ today }}" required>
       <label for="time">Time</label>
       <input id="time" name="time" type="time" required>
       <button type="submit" class="btn btn-block">Save</button>

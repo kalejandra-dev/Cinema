@@ -1,3 +1,4 @@
+import re
 from functools import wraps
 
 import flask_login
@@ -8,6 +9,10 @@ from . import db
 from .model import User, UserRole
 
 bp = Blueprint("auth", __name__)
+
+MIN_PASSWORD_LENGTH = 8
+# Simple check: something@something.something, without spaces
+EMAIL_PATTERN = re.compile(r"[^@\s]+@[^@\s]+\.[^@\s]+")
 
 
 # ====== Access control (used by main.py and admin.py) ======
@@ -44,6 +49,13 @@ def register():
 def register_post():
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "")
+
+    if not EMAIL_PATTERN.fullmatch(email) or len(email) > 128:
+        flash("Please enter a valid email address.")
+        return redirect(url_for("auth.register"))
+    if len(password) < MIN_PASSWORD_LENGTH:
+        flash(f"The password must have at least {MIN_PASSWORD_LENGTH} characters.")
+        return redirect(url_for("auth.register"))
 
     query = db.select(User).where(User.email == email)
     if db.session.execute(query).scalar_one_or_none():
