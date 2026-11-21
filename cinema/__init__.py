@@ -21,6 +21,12 @@ def create_app(test_config=None):
     dotenv.load_dotenv()
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("SQLALCHEMY_DATABASE_URI")
+    # Booking confirmation emails (optional, see mail.py)
+    app.config["MAIL_SERVER"] = os.getenv("MAIL_SERVER")
+    app.config["MAIL_PORT"] = int(os.getenv("MAIL_PORT", "587"))
+    app.config["MAIL_USERNAME"] = os.getenv("MAIL_USERNAME")
+    app.config["MAIL_PASSWORD"] = os.getenv("MAIL_PASSWORD")
+    app.config["MAIL_SENDER"] = os.getenv("MAIL_SENDER")
 
     db.init_app(app)
     # CSRF protection for every POST form (lab 6)
