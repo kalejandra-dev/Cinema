@@ -95,6 +95,16 @@ Cinema/                      <- project folder (repository)
    ```
    If the password contains `@`, `:`, `/` or `#`, write them as `%40`, `%3A`, `%2F`, `%23`.
 
+   Optional, to send a confirmation email after each booking (for Gmail, create an
+   "App password" in your Google account and use it as `MAIL_PASSWORD`):
+   ```
+   MAIL_SERVER=smtp.gmail.com
+   MAIL_PORT=587
+   MAIL_USERNAME=your.address@gmail.com
+   MAIL_PASSWORD=your-app-password
+   ```
+   Without `MAIL_SERVER` the email is printed in the terminal where Flask runs.
+
    Each person creates their own `.env`. It is in `.gitignore`, never commit it.
 
 3. Create the tables, the 6 screens and the ticket prices:

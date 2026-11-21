@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from . import db
 from .auth import customer_required
+from .mail import send_booking_confirmation
 from .model import (
     Movie, Showtime, Booking, BookedSeat, BookingItem, BookingPackage,
     FoodItem, Package, TicketPrice,
@@ -249,6 +250,10 @@ def confirm_booking(showtime_id):
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
     flash("Booking confirmed. Enjoy the movie!")
+    if send_booking_confirmation(new_booking):
+        flash(f"We sent the details to {flask_login.current_user.email}.")
+    else:
+        flash("We couldn't send the confirmation email, but your booking is saved.")
     return redirect(url_for("main.my_bookings"))
 
 
