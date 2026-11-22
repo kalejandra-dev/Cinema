@@ -1,7 +1,5 @@
 /* ===========================================================
-   CINEMA / AFTER DARK
-   Complete drop-in replacement for cinema/static/style.css
-   Designed for existing Flask + Jinja templates, no new assets.
+   CINEMA PARADISO 
    =========================================================== */
 
 /* Fonts (Anton for titles, Inter for text) are loaded in base.html */
@@ -665,7 +663,11 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
   translate: 0 24px;
   transition: opacity .7s var(--ease), translate .7s var(--ease);
 }
-.js-reveal .is-visible { opacity: 1; translate: 0 0; }
+.js-reveal .movie-card.is-visible,
+.js-reveal .panel.is-visible,
+.js-reveal .booking-card.is-visible,
+.js-reveal .showtime-list li.is-visible,
+.js-reveal .form-card.is-visible { opacity: 1; translate: 0 0; }
 
 @media (max-width: 700px) {
   .slide-content { flex-direction: column; text-align: center; min-height: 0; padding: 2rem 1.25rem 3.2rem; }
@@ -675,3 +677,20 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
   .logo-text { font-size: 1.4rem; }
   .logo-icon { width: 36px; height: 36px; }
 }
+
+/* ----- Showtimes by day (see showtimes.js) ----- */
+.day-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 1rem; }
+.day-tab {
+  padding: .5rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: rgba(255,255,255,.04);
+  color: #dbdbe2;
+  font-weight: 700;
+  font-size: .9rem;
+  transition: background .2s ease, border-color .2s ease;
+}
+.day-tab:hover { background: rgba(255,255,255,.09); color: #fff; }
+.day-tab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.showtime-time { display: block; font-family: "Anton", Impact, sans-serif; font-size: 1.6rem; font-weight: 400; letter-spacing: .03em; }
+.showtime-list.is-loading { opacity: .5; transition: opacity .2s; }
