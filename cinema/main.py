@@ -240,7 +240,7 @@ def confirm_booking(showtime_id):
             price=item.price,
         ))
         new_booking.total_price += item.price * quantity
-
+    
     db.session.add(new_booking)
     try:
         db.session.commit()
@@ -250,9 +250,10 @@ def confirm_booking(showtime_id):
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
     flash("Booking confirmed. Enjoy the movie!")
-    if send_booking_confirmation(new_booking):
+    sent = send_booking_confirmation(new_booking)
+    if sent:
         flash(f"We sent the details to {flask_login.current_user.email}.")
-    else:
+    elif sent is False:
         flash("We couldn't send the confirmation email, but your booking is saved.")
     return redirect(url_for("main.my_bookings"))
 

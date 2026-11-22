@@ -140,6 +140,7 @@ DONE
 - Flask-Login (lab 4) and CSRF protection (lab 6)
 - Billboard shows only movies with showtimes in the next 7 days
 - init-db with screens and prices, create-admin command
+- Booking confirmation email (Gmail SMTP, configured in .env)
 
 TO DO
 -----

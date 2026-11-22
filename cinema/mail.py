@@ -49,6 +49,7 @@ def send_booking_confirmation(booking):
     """Send the confirmation email of a booking to its user.
 
     Returns True if the email was sent (or printed), False if it failed.
+    None if it was not sent because no email server is configured.
     A failure must not cancel the booking, so errors are only logged.
     """
     config = current_app.config
@@ -63,7 +64,7 @@ def send_booking_confirmation(booking):
         print("=" * 60)
         print(message)
         print("=" * 60)
-        return True
+        return None 
 
     try:
         with smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=10) as smtp:
