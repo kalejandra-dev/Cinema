@@ -1,58 +1,151 @@
+
 {% extends "base.html" %}
 {% block title %}Now showing{% endblock %}
 {% block content %}
-{% set featured = movies[:5] %}
-{% if featured %}
-<section class="carousel" aria-roledescription="carousel" aria-label="Featured movies">
-  <div class="carousel-track">
-    {% for movie in featured %}
-    <article class="slide{% if loop.first %} is-active{% endif %}"
-             aria-roledescription="slide" aria-label="{{ loop.index }} of {{ featured|length }}"
-             aria-hidden="{{ 'false' if loop.first else 'true' }}">
-      {% if movie.poster_data %}
-      <div class="slide-bg"
-           style="background-image: url('{{ url_for('main.movie_poster', movie_id=movie.id) }}');"></div>
-      {% endif %}
-      <div class="slide-content">
-        {% with extra_class = "slide-poster" %}{% include "_poster.html" %}{% endwith %}
-        <div class="slide-text">
-          <p class="slide-kicker">Featured</p>
-          <h2 class="slide-title">{{ movie.title }}</h2>
-          <p class="slide-meta">{{ movie.genre }} · {{ movie.duration }} min · <span class="tag">{{ movie.age_rating }}</span></p>
-          <p class="slide-synopsis">{{ movie.synopsis | truncate(180) }}</p>
-          <a class="btn btn-large" href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">Buy tickets</a>
+
+<!-- A carrousel for promo in the beginign of the website -->
+<section class="promo-carousel"
+         data-promo-carousel
+         aria-roledescription="carousel"
+         aria-label="Cinema Paradiso highlights">
+
+  <div class="promo-viewport">
+    <div class="promo-track" data-promo-track>
+
+      <!-- The first slide is a welcome slide -->
+      <article class="promo-slide promo-slide--welcome"
+               data-promo-slide
+               aria-roledescription="slide"
+               aria-label="1 of 4"
+               aria-hidden="false">
+        <div class="promo-visual" aria-hidden="true"></div>
+        <div class="promo-content">
+          <p class="promo-kicker">Welcome to Cinema Paradiso</p>
+          <h1>We come to this place<br>for magic</h1>
+          <p class="promo-description">
+            Go somewhere you've never been before,
+            not just entertained, but somehow reborn.
+          </p>
+          <a class="btn btn-large" href="#now-showing">
+            See More
+          </a>
         </div>
-      </div>
-    </article>
-    {% endfor %}
+      </article>
+
+      <!-- A coming soon section -->
+      <article class="promo-slide promo-slide--coming"
+               data-promo-slide
+               aria-roledescription="slide"
+               aria-label="2 of 4"
+               aria-hidden="true"
+               inert>
+        <div class="promo-visual" aria-hidden="true"></div>
+        <div class="promo-content">
+          <p class="promo-kicker">Coming soon</p>
+          <h2>This December:<br>DUNESDAY</h2>
+          <p class="promo-description">
+            Avengers: Doomsday vs Dune: Part Three.
+            Which will you see first?
+          </p>
+          <a class="btn btn-large" href="#coming-soon">
+            Coming Soon
+          </a>
+        </div>
+      </article>
+
+      <!--What has been just added -->
+      <article class="promo-slide promo-slide--week"
+               data-promo-slide
+               aria-roledescription="slide"
+               aria-label="3 of 4"
+               aria-hidden="true"
+               inert>
+        <div class="promo-visual" aria-hidden="true"></div>
+        <div class="promo-content">
+          <p class="promo-kicker">This week at Paradiso</p>
+          <h2>BIG STORIES<br>BIG SCREEN</h2>
+          <p class="promo-description">
+            From thrilling adventures to unforgettable classics,
+            discover what's new at Cinema Paradiso this week
+          </p>
+          <a class="btn btn-large" href="#now-showing">
+            What's on
+          </a>
+        </div>
+      </article>
+
+      <!-- SNACKS -->
+      <article class="promo-slide promo-slide--snacks"
+               data-promo-slide
+               aria-roledescription="slide"
+               aria-label="4 of 4"
+               aria-hidden="true"
+               inert>
+        <div class="promo-visual" aria-hidden="true"></div>
+        <div class="promo-content">
+          <p class="promo-kicker">Snacks & More</p>
+          <h2>GOOD MOVIES<br>GREAT SNACKS</h2>
+          <p class="promo-description">
+            Popcorn, drinks and cinema combos.
+            Complete your experience when booking your seats.
+          </p>
+          <a class="btn btn-large" href="#snacks-more">
+            Explore Snacks
+          </a>
+        </div>
+      </article>
+
+    </div>
   </div>
 
-  {% if featured|length > 1 %}
-  <button class="carousel-arrow carousel-prev" type="button" aria-label="Previous movie">&#8249;</button>
-  <button class="carousel-arrow carousel-next" type="button" aria-label="Next movie">&#8250;</button>
-  <div class="carousel-dots">
-    {% for movie in featured %}
-    <button class="carousel-dot{% if loop.first %} is-active{% endif %}" type="button"
-            aria-label="Show {{ movie.title }}"></button>
-    {% endfor %}
+  <!-- Navigation -->
+  <button class="promo-arrow promo-prev"
+          type="button"
+          aria-label="Previous promotion">
+    &#10094;
+  </button>
+
+  <button class="promo-arrow promo-next"
+          type="button"
+          aria-label="Next promotion">
+    &#10095;
+  </button>
+
+  <div class="promo-dots" aria-label="Choose a promotion">
+    <button type="button" class="promo-dot is-active"
+            aria-label="Welcome" aria-pressed="true"></button>
+    <button type="button" class="promo-dot"
+            aria-label="Coming soon" aria-pressed="false"></button>
+    <button type="button" class="promo-dot"
+            aria-label="This week" aria-pressed="false"></button>
+    <button type="button" class="promo-dot"
+            aria-label="Snacks and more" aria-pressed="false"></button>
   </div>
-  {% endif %}
+
 </section>
-{% endif %}
 
-<section class="hero">
-  <h1>Now showing</h1>
+<!-- EXISTING MOVIE CATALOGUE -->
+<section class="hero" id="now-showing">
+  <h2>Now showing</h2>
   <p>Pick a movie, choose a showtime and book your seats.</p>
 </section>
 
 <div class="movie-grid">
   {% for movie in movies %}
   <article class="movie-card">
-    {% with extra_class = "" %}{% include "_poster.html" %}{% endwith %}
+    {% with extra_class = "" %}
+      {% include "_poster.html" %}
+    {% endwith %}
     <div class="movie-card-body">
       <h2>{{ movie.title }}</h2>
-      <p class="meta">{{ movie.genre }} · {{ movie.duration }} min · <span class="tag">{{ movie.age_rating }}</span></p>
-      <a class="btn" href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">See showtimes</a>
+      <p class="meta">
+        {{ movie.genre }} · {{ movie.duration }} min ·
+        <span class="tag">{{ movie.age_rating }}</span>
+      </p>
+      <a class="btn"
+         href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">
+        See showtimes
+      </a>
     </div>
   </article>
   {% else %}
@@ -60,5 +153,6 @@
   {% endfor %}
 </div>
 
-<script src="{{ url_for('static', filename='carousel.js') }}"></script>
+<script src="{{ url_for('static', filename='hero-carousel.js') }}"></script>
+
 {% endblock %}

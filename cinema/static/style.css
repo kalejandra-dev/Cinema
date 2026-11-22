@@ -694,3 +694,341 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
 .day-tab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .showtime-time { display: block; font-family: "Anton", Impact, sans-serif; font-size: 1.6rem; font-weight: 400; letter-spacing: .03em; }
 .showtime-list.is-loading { opacity: .5; transition: opacity .2s; }
+
+
+
+/* ==========================================================
+   CINEMA PARADISO — PROMOTIONAL HOMEPAGE CAROUSEL
+   Separate from the existing featured-movies carousel.
+   ========================================================== */
+
+.promo-carousel {
+    position: relative;
+    width: calc(100% + 2 * clamp(1rem, 3.5vw, 2.5rem));
+    margin:
+        calc(-1 * clamp(2rem, 5vw, 4.4rem))
+        calc(-1 * clamp(1rem, 3.5vw, 2.5rem))
+        3.5rem;
+    overflow: hidden;
+    background: #0c0c13;
+    border-bottom: 1px solid rgba(255,255,255,.12);
+    box-shadow: 0 25px 70px rgba(0,0,0,.35);
+    isolation: isolate;
+}
+
+.promo-viewport {
+    width: 100%;
+    overflow: hidden;
+}
+
+.promo-track {
+    display: flex;
+    transition: transform .85s cubic-bezier(.22, 1, .36, 1);
+}
+
+.promo-slide {
+    position: relative;
+    flex: 0 0 100%;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    min-height: clamp(460px, 48vw, 600px);
+    overflow: hidden;
+}
+
+.promo-visual {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+
+/* ==========================================================
+   CINEMA PARADISO - HOMEPAGE CAROUSEL BACKGROUNDS
+   ========================================================== */
+
+/* SLIDE 1: WELCOME */
+.promo-slide--welcome .promo-visual {
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(8, 9, 14, 0.95) 0%,
+            rgba(8, 9, 14, 0.70) 43%,
+            rgba(8, 9, 14, 0.10) 100%
+        ),
+        url("hero/welcome.jpg.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+/* SLIDE 2: COMING SOON */
+.promo-slide--coming .promo-visual {
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(8, 9, 14, 0.94) 0%,
+            rgba(8, 9, 14, 0.65) 48%,
+            rgba(8, 9, 14, 0.10) 100%
+        ),
+        url("hero/coming-soon.jpg.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+/* SLIDE 3: THIS WEEK */
+.promo-slide--week .promo-visual {
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(8, 9, 14, 0.95) 0%,
+            rgba(8, 9, 14, 0.67) 45%,
+            rgba(8, 9, 14, 0.12) 100%
+        ),
+        url("hero/this-week.jpg.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+/* SLIDE 4: SNACKS & MORE */
+.promo-slide--snacks .promo-visual {
+    background-image:
+        linear-gradient(
+            90deg,
+            rgba(8, 9, 14, 0.95) 0%,
+            rgba(8, 9, 14, 0.68) 45%,
+            rgba(8, 9, 14, 0.10) 100%
+        ),
+        url("hero/snacks.jpg.jpg");
+
+    background-size: cover;
+    background-position: center;
+}
+
+
+.promo-content {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 1120px);
+    margin-inline: auto;
+    padding: 5rem clamp(4.5rem, 8vw, 7rem) 6rem;
+}
+
+.promo-kicker {
+    margin: 0 0 1rem;
+    color: #ff7283;
+    font-size: .82rem;
+    font-weight: 800;
+    letter-spacing: .23em;
+    text-transform: uppercase;
+}
+
+.promo-content h1,
+.promo-content h2 {
+    max-width: 850px;
+    margin: 0 0 1.2rem;
+    color: #fff;
+    font-family: "Anton", Impact, sans-serif;
+    font-size: clamp(3rem, 7vw, 6.3rem);
+    font-weight: 400;
+    line-height: 1.03;
+    letter-spacing: .015em;
+    text-transform: uppercase;
+    text-shadow: 0 8px 40px rgba(0,0,0,.5);
+}
+
+.promo-description {
+    max-width: 540px;
+    margin: 0 0 2rem;
+    color: #eee5eb;
+    font-size: clamp(.95rem, 1.4vw, 1.14rem);
+    line-height: 1.75;
+    text-shadow: 0 2px 10px rgba(0,0,0,.55);
+}
+
+.promo-content .btn {
+    min-height: 52px;
+    padding: .9rem 1.9rem;
+    border-radius: 9px;
+    font-size: .96rem;
+}
+
+/* Navigation arrows */
+.promo-arrow {
+    position: absolute;
+    top: 50%;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255,255,255,.22);
+    border-radius: 50%;
+    background: rgba(8,9,14,.55);
+    color: white;
+    font-size: 1.25rem;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: background .25s ease, transform .25s ease;
+}
+
+.promo-arrow:hover {
+    background: var(--accent);
+    transform: translateY(-50%) scale(1.08);
+}
+
+.promo-prev { left: 1.2rem; }
+.promo-next { right: 1.2rem; }
+
+/* Navigation dots */
+.promo-dots {
+    position: absolute;
+    left: 50%;
+    bottom: 1.75rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    transform: translateX(-50%);
+}
+
+.promo-dot {
+    width: 10px;
+    height: 10px;
+    padding: 0;
+    border: 0;
+    border-radius: 20px;
+    background: rgba(255,255,255,.4);
+    cursor: pointer;
+    transition: width .3s ease, background .3s ease;
+}
+
+.promo-dot:hover {
+    background: rgba(255,255,255,.8);
+}
+
+.promo-dot.is-active {
+    width: 34px;
+    background: var(--accent);
+}
+
+/* Sections reached by carousel buttons */
+#now-showing,
+#coming-soon,
+#snacks-more {
+    scroll-margin-top: 110px;
+}
+
+.hero h2 {
+    font-size: clamp(2.5rem, 5vw, 4rem);
+}
+
+.promo-info {
+    margin-top: 4.5rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--border);
+}
+
+.promo-info > h2 {
+    font-size: clamp(2rem, 4vw, 3.2rem);
+}
+
+.promo-info > p:not(.promo-section-kicker) {
+    max-width: 650px;
+    color: var(--muted);
+}
+
+.promo-section-kicker {
+    color: #ff7283;
+    font-size: .75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .16em;
+}
+
+.promo-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.promo-info-card {
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(135deg, #20212d, #15121b);
+}
+
+.promo-info-card h3 {
+    margin: .3rem 0 .8rem;
+    font-size: 1.3rem;
+}
+
+.promo-info-card p:last-child {
+    margin-bottom: 0;
+    color: var(--muted);
+}
+
+/* Mobile layouts */
+@media (max-width: 700px) {
+    .promo-slide {
+        min-height: 540px;
+    }
+
+    .promo-content {
+        padding: 3.5rem 1.5rem 6.5rem;
+    }
+
+    .promo-content h1,
+    .promo-content h2 {
+        font-size: clamp(2.8rem, 11vw, 4.2rem);
+    }
+
+    .promo-description {
+        font-size: .95rem;
+    }
+
+    .promo-arrow {
+        top: auto;
+        bottom: 1.15rem;
+        width: 40px;
+        height: 40px;
+        transform: none;
+    }
+
+    .promo-arrow:hover {
+        transform: scale(1.05);
+    }
+
+    .promo-prev { left: 1rem; }
+    .promo-next { right: 1rem; }
+
+    .promo-dots {
+        bottom: 2.1rem;
+    }
+
+    .promo-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .promo-info-card {
+        padding: 1.4rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .promo-track,
+    .promo-arrow,
+    .promo-dot {
+        transition: none;
+    }
+}
+
