@@ -1,0 +1,50 @@
+
+{% extends "base.html" %}
+{% block title %}Coming Soon{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+  <h1>Coming Soon</h1>
+  <p>
+    See what is arriving soon at Cinema Paradiso
+  </p>
+</section>
+
+<div class="movie-grid coming-soon-grid">
+  {% for movie in movies %}
+  <article class="movie-card">
+
+    {% with extra_class = "" %}
+      {% include "_poster.html" %}
+    {% endwith %}
+
+    <div class="movie-card-body">
+      <h2>{{ movie.title }}</h2>
+
+      <p class="meta">
+        {{ movie.genre }} · {{ movie.duration }} min ·
+        <span class="tag">{{ movie.age_rating }}</span>
+      </p>
+
+      <p class="meta">
+        <strong>Premieres December 18</strong>
+      </p>
+
+      <p>{{ movie.synopsis }}</p>
+
+      <a class="btn"
+         href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">
+        View Screenings
+      </a>
+    </div>
+
+  </article>
+  {% else %}
+  <p class="empty">
+    The upcoming movies haven't been added to this database yet.
+  </p>
+  {% endfor %}
+</div>
+
+{% endblock %}

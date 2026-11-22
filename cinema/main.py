@@ -18,7 +18,9 @@ from .model import (
 
 bp = Blueprint("main", __name__)
 MAX_QUANTITY = 10       # per food item or package in a booking (max="10" in the templates)
-DAYS_AHEAD = 7          # the billboard shows showtimes from now to 7 days ahead
+DAYS_AHEAD = 14          # the billboard shows showtimes from now to 7 days ahead
+COMING_SOON_TITLES = ("Avengers: Doomsday", "Dune: Part Three")
+COMING_SOON_START = datetime.date(2026, 12, 18)
 
 
 def not_started():
@@ -34,6 +36,11 @@ def upcoming():
     at most DAYS_AHEAD days from today."""
     last_day = datetime.date.today() + datetime.timedelta(days=DAYS_AHEAD)
     return and_(not_started(), Showtime.date <= last_day)
+
+def movie_showtime_filter(movie):
+    if movie.title in COMING_SOON_TITLES:
+        return not_started()
+    return upcoming()
 
 def has_started(showtime):
     return datetime.datetime.combine(showtime.date, showtime.time) <= datetime.datetime.now()
@@ -110,13 +117,47 @@ def showtime_started(showtime):
 
 # ====== Public pages ======
 
+
 @bp.route("/")
 def index():
-    # Movies with at least one upcoming showtime
     showing = db.select(Showtime.movie_id).where(upcoming())
-    query = db.select(Movie).where(Movie.id.in_(showing)).order_by(Movie.title)
-    movies = db.session.scalars(query).all()
+
+    query = db.select(Movie).where(Movie.id.in_(showing))
+
+    #We want to keep the unreleased films on the coming soon page
+    if datetime.date.today() < COMING_SOON_START:
+        query = query.where(
+            ~Movie.title.in_(COMING_SOON_TITLES)
+        )
+
+    movies = db.session.scalars(
+        query.order_by(Movie.title)
+    ).all()
+
     return render_template("main/index.html", movies=movies)
+
+
+
+@bp.route("/coming-soon")
+def coming_soon():
+    """Show only the two upcoming releases."""
+    movies_found = db.session.scalars(
+        db.select(Movie).where(Movie.title.in_(COMING_SOON_TITLES))
+    ).all()
+
+    by_title = {movie.title: movie for movie in movies_found}
+    movies = [
+        by_title[title]
+        for title in COMING_SOON_TITLES
+        if title in by_title
+    ]
+
+    return render_template(
+        "main/coming_soon.html",
+        movies=movies,
+        release_date=COMING_SOON_START,
+    )
+
 
 
 def day_label(day):
@@ -135,7 +176,7 @@ def showtimes_on(movie, day):
         db.select(Showtime)
         .where(Showtime.movie_id == movie.id)
         .where(Showtime.date == day)
-        .where(upcoming())
+        .where(movie_showtime_filter(movie))
         .order_by(Showtime.time)
     )
     return db.session.scalars(query).all()
@@ -152,7 +193,7 @@ def movie_detail(movie_id):
     query = (
         db.select(Showtime.date)
         .where(Showtime.movie_id == movie.id)
-        .where(upcoming())
+        .where(movie_showtime_filter(movie))
         .distinct()
         .order_by(Showtime.date)
     )
