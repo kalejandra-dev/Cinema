@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const nextButton = carousel.querySelector(".carousel-next");
     if (slides.length < 2) return;
 
-    const INTERVAL = 5000;  // milliseconds between slides
+    const INTERVAL = 3000;  // milliseconds between slides
     // Don't move by itself if the user asked the system for reduced motion
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let current = 0;

@@ -1,6 +1,45 @@
 {% extends "base.html" %}
 {% block title %}Now showing{% endblock %}
 {% block content %}
+{% set featured = movies[:5] %}
+{% if featured %}
+<section class="carousel" aria-roledescription="carousel" aria-label="Featured movies">
+  <div class="carousel-track">
+    {% for movie in featured %}
+    <article class="slide{% if loop.first %} is-active{% endif %}"
+             aria-roledescription="slide" aria-label="{{ loop.index }} of {{ featured|length }}"
+             aria-hidden="{{ 'false' if loop.first else 'true' }}">
+      {% if movie.poster_data %}
+      <div class="slide-bg"
+           style="background-image: url('{{ url_for('main.movie_poster', movie_id=movie.id) }}');"></div>
+      {% endif %}
+      <div class="slide-content">
+        {% with extra_class = "slide-poster" %}{% include "_poster.html" %}{% endwith %}
+        <div class="slide-text">
+          <p class="slide-kicker">Featured</p>
+          <h2 class="slide-title">{{ movie.title }}</h2>
+          <p class="slide-meta">{{ movie.genre }} · {{ movie.duration }} min · <span class="tag">{{ movie.age_rating }}</span></p>
+          <p class="slide-synopsis">{{ movie.synopsis | truncate(180) }}</p>
+          <a class="btn btn-large" href="{{ url_for('main.movie_detail', movie_id=movie.id) }}">Buy tickets</a>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  {% if featured|length > 1 %}
+  <button class="carousel-arrow carousel-prev" type="button" aria-label="Previous movie">&#8249;</button>
+  <button class="carousel-arrow carousel-next" type="button" aria-label="Next movie">&#8250;</button>
+  <div class="carousel-dots">
+    {% for movie in featured %}
+    <button class="carousel-dot{% if loop.first %} is-active{% endif %}" type="button"
+            aria-label="Show {{ movie.title }}"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="hero">
   <h1>Now showing</h1>
   <p>Pick a movie, choose a showtime and book your seats.</p>
@@ -20,4 +59,6 @@
   <p class="empty">There are no movies showing in the next days.</p>
   {% endfor %}
 </div>
+
+<script src="{{ url_for('static', filename='carousel.js') }}"></script>
 {% endblock %}
