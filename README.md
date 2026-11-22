@@ -121,7 +121,7 @@ Cinema/                      <- project folder (repository)
 ## Running the app
 
 ```
-git switch mainflask --debug --app=cinema run
+flask --debug --app=cinema run
 ```
 
 Open http://127.0.0.1:5000 in the browser and log in with the staff user to add
