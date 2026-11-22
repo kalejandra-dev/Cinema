@@ -9,15 +9,29 @@
     <p>{{ movie.synopsis }}</p>
 
     <h2>Showtimes</h2>
-    {% if showtimes %}
-    <ul class="showtime-list">
+    {% if days %}
+    {# Links work without JavaScript; showtimes.js loads the day with fetch instead #}
+    <nav class="day-tabs" aria-label="Choose a day">
+      {% for day, label in days %}
+      <a class="day-tab{% if day == selected_day %} is-active{% endif %}"
+         href="{{ url_for('main.movie_detail', movie_id=movie.id, date=day.isoformat()) }}"
+         data-date="{{ day.isoformat() }}"
+         {% if day == selected_day %}aria-current="true"{% endif %}>{{ label }}</a>
+      {% endfor %}
+    </nav>
+
+    <ul class="showtime-list" id="showtime-list" aria-live="polite"
+        data-url="{{ url_for('main.movie_showtimes', movie_id=movie.id) }}">
       {% for s in showtimes %}
+      {% set left = seats_left(s) %}
       <li>
         <div>
-          <strong>{{ s.date.strftime('%a %d/%m/%Y') }} · {{ s.time.strftime('%H:%M') }}</strong><br>
-          <span class="meta">{{ s.screen.name }}</span>
+          <strong class="showtime-time">{{ s.time.strftime('%H:%M') }}</strong>
+          <span class="meta">{{ s.screen.name }} · {{ left }} seats left</span>
         </div>
-        {% if not current_user.is_staff %}
+        {% if left == 0 %}
+        <span class="tag tag-off">Sold out</span>
+        {% elif not current_user.is_staff %}
         <a class="btn" href="{{ url_for('main.booking', showtime_id=s.id) }}">Book</a>
         {% endif %}
       </li>
@@ -28,4 +42,5 @@
     {% endif %}
   </div>
 </section>
+<script src="{{ url_for('static', filename='showtimes.js') }}"></script>
 {% endblock %}

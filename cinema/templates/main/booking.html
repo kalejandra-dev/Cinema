@@ -13,7 +13,8 @@
 
 {# GET: choosing seats doesn't change anything yet, it just goes to step 2 #}
 <form method="get" action="{{ url_for('main.booking_food', showtime_id=showtime.id) }}"
-      class="booking-layout" id="seats-form" data-price-per-seat="{{ price_per_seat }}">
+      class="booking-layout" id="seats-form" data-price-per-seat="{{ price_per_seat }}"
+      data-taken-url="{{ url_for('main.taken_seats_json', showtime_id=showtime.id) }}">
   <section class="panel">
     <h2>Choose your seats</h2>
 
@@ -48,6 +49,7 @@
       <p>Seats: <strong id="selected-seats">none</strong></p>
       <p>Price per seat: {{ "%.2f"|format(price_per_seat) }} €</p>
       <p>Tickets: <strong id="seats-total" class="price">0.00</strong> €</p>
+      <p id="seat-notice" class="warning" role="status" hidden></p>
       <button type="submit" class="btn btn-block">Continue</button>
     </div>
   </section>

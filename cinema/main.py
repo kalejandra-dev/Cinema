@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import flask_login
 from flask import (
-    Blueprint, render_template, request, redirect, url_for, flash, abort
+    Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
 )
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -119,17 +119,96 @@ def index():
     return render_template("main/index.html", movies=movies)
 
 
-@bp.route("/movie/<int:movie_id>")
-def movie_detail(movie_id):
-    movie = db.get_or_404(Movie, movie_id)
+def day_label(day):
+    """'Today', 'Tomorrow' or a short date like 'Wed 25 Nov'."""
+    today = datetime.date.today()
+    if day == today:
+        return "Today"
+    if day == today + datetime.timedelta(days=1):
+        return "Tomorrow"
+    return day.strftime("%a %d %b")
+
+
+def showtimes_on(movie, day):
+    """Upcoming showtimes of a movie on one day, in order."""
     query = (
         db.select(Showtime)
         .where(Showtime.movie_id == movie.id)
+        .where(Showtime.date == day)
         .where(upcoming())
-        .order_by(Showtime.date, Showtime.time)
+        .order_by(Showtime.time)
     )
-    showtimes = db.session.scalars(query).all()
-    return render_template("main/movie_detail.html", movie=movie, showtimes=showtimes)
+    return db.session.scalars(query).all()
+
+
+def seats_left(showtime):
+    return showtime.screen.capacity - len(taken_seats(showtime))
+
+
+@bp.route("/movie/<int:movie_id>")
+def movie_detail(movie_id):
+    movie = db.get_or_404(Movie, movie_id)
+    # Days (in the next DAYS_AHEAD days) with at least one showtime of this movie
+    query = (
+        db.select(Showtime.date)
+        .where(Showtime.movie_id == movie.id)
+        .where(upcoming())
+        .distinct()
+        .order_by(Showtime.date)
+    )
+    days = db.session.scalars(query).all()
+
+    # Selected day: ?date=YYYY-MM-DD in the URL, or the first day with showtimes
+    selected_day = days[0] if days else None
+    try:
+        requested = datetime.date.fromisoformat(request.args.get("date", ""))
+        if requested in days:
+            selected_day = requested
+    except ValueError:
+        pass
+
+    showtimes = showtimes_on(movie, selected_day) if selected_day else []
+    return render_template(
+        "main/movie_detail.html", movie=movie,
+        days=[(day, day_label(day)) for day in days],
+        selected_day=selected_day, showtimes=showtimes, seats_left=seats_left,
+    )
+
+
+# ====== JSON for JavaScript (fetch) ======
+
+@bp.route("/movie/<int:movie_id>/showtimes")
+def movie_showtimes(movie_id):
+    """Showtimes of a movie on one day (?date=YYYY-MM-DD), as JSON.
+    Used by showtimes.js to change the day without reloading the page."""
+    movie = db.get_or_404(Movie, movie_id)
+    try:
+        day = datetime.date.fromisoformat(request.args.get("date", ""))
+    except ValueError:
+        return jsonify(error="Invalid date"), 400
+
+    user = flask_login.current_user
+    can_book = not (user.is_authenticated and user.is_staff)
+    showtimes = []
+    for showtime in showtimes_on(movie, day):
+        showtimes.append({
+            "id": showtime.id,
+            "time": showtime.time.strftime("%H:%M"),
+            "screen": showtime.screen.name,
+            "seats_left": seats_left(showtime),
+            "booking_url": url_for("main.booking", showtime_id=showtime.id),
+        })
+    return jsonify(date=day.isoformat(), can_book=can_book, showtimes=showtimes)
+
+
+@bp.route("/booking/<int:showtime_id>/taken")
+@customer_required
+def taken_seats_json(showtime_id):
+    """Seats already booked for a showtime, as JSON.
+    Used by seat_map.js to update the seat map every few seconds."""
+    showtime = db.get_or_404(Showtime, showtime_id)
+    return jsonify(taken=sorted_seats(taken_seats(showtime)))
+
 
 @bp.route("/movie/<int:movie_id>/poster")
 def movie_poster(movie_id):
@@ -240,7 +319,7 @@ def confirm_booking(showtime_id):
             price=item.price,
         ))
         new_booking.total_price += item.price * quantity
-    
+
     db.session.add(new_booking)
     try:
         db.session.commit()
@@ -250,10 +329,9 @@ def confirm_booking(showtime_id):
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
     flash("Booking confirmed. Enjoy the movie!")
-    sent = send_booking_confirmation(new_booking)
-    if sent:
+    if send_booking_confirmation(new_booking):
         flash(f"We sent the details to {flask_login.current_user.email}.")
-    elif sent is False:
+    else:
         flash("We couldn't send the confirmation email, but your booking is saved.")
     return redirect(url_for("main.my_bookings"))
 
