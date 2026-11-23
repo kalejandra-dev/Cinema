@@ -137,6 +137,43 @@ def index():
     return render_template("main/index.html", movies=movies)
 
 
+@bp.route("/whats-on")
+def whats_on():
+    # Get the current date and time
+    now = datetime.datetime.now()
+
+    # Only today's screenings that have NOT started
+    query = (
+        db.select(Showtime)
+        .where(Showtime.date == now.date())
+        .where(Showtime.time > now.time())
+        .order_by(Showtime.time)
+    )
+
+    showtimes = db.session.scalars(query).all()
+
+    # Group all remaining screenings by movie
+    grouped = {}
+
+    for showtime in showtimes:
+        movie = showtime.movie
+
+        if movie.id not in grouped:
+            grouped[movie.id] = {
+                "movie": movie,
+                "showtimes": []
+            }
+
+        grouped[movie.id]["showtimes"].append(showtime)
+
+    return render_template(
+        "main/whats_on.html",
+        programmes=list(grouped.values()),
+        today=now.date()
+    )
+
+
+
 
 @bp.route("/coming-soon")
 def coming_soon():
