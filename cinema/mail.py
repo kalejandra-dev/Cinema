@@ -48,8 +48,8 @@ def booking_email_text(booking):
 def send_booking_confirmation(booking):
     """Send the confirmation email of a booking to its user.
 
-    Returns True if the email was sent (or printed), False if it failed.
-    None if it was not sent because no email server is configured.
+    Returns True if the email was sent, False if it failed, and None if
+    no email server is configured (the email is only printed in the terminal).
     A failure must not cancel the booking, so errors are only logged.
     """
     config = current_app.config
@@ -64,7 +64,8 @@ def send_booking_confirmation(booking):
         print("=" * 60)
         print(message)
         print("=" * 60)
-        return None 
+        current_app.logger.warning("MAIL_SERVER is not set in .env: the booking email was not sent")
+        return None
 
     try:
         with smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=10) as smtp:
