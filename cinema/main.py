@@ -195,6 +195,10 @@ def coming_soon():
         release_date=COMING_SOON_START,
     )
 
+@bp.route("/snacks")
+def snacks():
+    return render_template("main/snacks.html")
+
 
 
 def day_label(day):
