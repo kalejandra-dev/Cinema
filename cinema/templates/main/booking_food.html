@@ -1,86 +1,279 @@
+
 {% extends "base.html" %}
-{% block title %}Food &amp; drinks · {{ showtime.movie.title }}{% endblock %}
+
+{% block title %}
+Food &amp; drinks · {{ showtime.movie.title }}
+{% endblock %}
+
 {% block content %}
+
 <h1>Book tickets</h1>
+
 <ol class="booking-steps">
-  <li class="done"><a href="{{ url_for('main.booking', showtime_id=showtime.id, seats=seats) }}">1. Seats</a></li>
-  <li class="current">2. Food &amp; drinks</li>
+  <li class="done">
+    <a href="{{ url_for('main.booking',
+                        showtime_id=showtime.id,
+                        seats=seats) }}">
+      1. Seats
+    </a>
+  </li>
+
+  <li class="current">
+    2. Food &amp; drinks
+  </li>
 </ol>
+
 <p class="meta">
-  {{ showtime.movie.title }} · {{ showtime.date.strftime('%a %d/%m/%Y') }} ·
-  {{ showtime.time.strftime('%H:%M') }} · {{ showtime.screen.name }}
+  {{ showtime.movie.title }} ·
+  {{ showtime.date.strftime('%a %d/%m/%Y') }} ·
+  {{ showtime.time.strftime('%H:%M') }} ·
+  {{ showtime.screen.name }}
 </p>
 
-<form method="post" action="{{ url_for('main.confirm_booking', showtime_id=showtime.id) }}"
-      class="booking-layout" id="food-form"
-      data-price-per-seat="{{ price_per_seat }}" data-seats="{{ seats | length }}">
-  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  {# The seats chosen in step 1 travel with the form, hidden #}
+
+<!-- MAIN BOOKING FORM -->
+
+<form
+  method="post"
+  action="{{ url_for('main.confirm_booking',
+                     showtime_id=showtime.id) }}"
+  class="booking-layout"
+  id="food-form"
+  data-price-per-seat="{{ price_per_seat }}"
+  data-seats="{{ seats | length }}"
+>
+
+  <input
+    type="hidden"
+    name="csrf_token"
+    value="{{ csrf_token() }}"
+  >
+
+
+  <!-- PRESERVE SELECTED SEATS -->
+
   {% for seat in seats %}
-  <input type="hidden" name="seats" value="{{ seat }}">
+
+    <input
+      type="hidden"
+      name="seats"
+      value="{{ seat }}"
+    >
+
   {% endfor %}
 
-  <section class="panel">
-    {% if packages %}
-    <h2>Packages</h2>
-    <p class="meta">Tickets and food together, cheaper. The tickets in your packages
-      are used for the seats you chose.</p>
-    <table class="table">
-      <thead><tr><th>Package</th><th>Price</th><th>Qty</th></tr></thead>
-      <tbody>
-        {% for p in packages %}
-        <tr>
-          <td>{{ p.name }}<br><span class="meta">{{ p.contents }}</span></td>
-          <td>{{ "%.2f"|format(p.price) }} €</td>
-          <td><input type="number" name="package_{{ p.id }}" min="0" max="10" value="0" class="qty"
-                     data-package-price="{{ p.price }}" data-tickets="{{ p.ticket_quantity }}"></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
 
-    <h2>Individual items</h2>
-    {% if food %}
-    <table class="table">
-      <thead><tr><th>Item</th><th>Price</th><th>Qty</th></tr></thead>
-      <tbody>
-        {% for item in food %}
-        <tr>
-          <td>{{ item.name }}<br><span class="meta">{{ item.description }}</span></td>
-          <td>{{ "%.2f"|format(item.price) }} €</td>
-          <td><input type="number" name="food_{{ item.id }}" min="0" max="10" value="0" class="qty"
-                     data-price="{{ item.price }}"></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% else %}
-    <p class="empty">No food available right now.</p>
-    {% endif %}
+  <!-- PRESERVE SELECTED FOOD -->
+
+  {% for item in food %}
+
+    <input
+      type="hidden"
+      name="food_{{ item.id }}"
+      value="{{ cart['food'].get(item.id | string, 0) }}"
+      data-price="{{ item.price }}"
+    >
+
+  {% endfor %}
+
+
+  <!-- PRESERVE SELECTED COMBOS AND DEALS -->
+
+  {% for package in packages %}
+
+    <input
+      type="hidden"
+      name="package_{{ package.id }}"
+      value="{{ cart['packages'].get(package.id | string, 0) }}"
+      data-package-price="{{ package.price }}"
+      data-tickets="{{ package.ticket_quantity }}"
+    >
+
+  {% endfor %}
+
+
+
+  <!-- LEFT PANEL: BROWSE SNACKS -->
+
+  <section class="panel">
+
+    <h2>Food &amp; Drinks</h2>
+
+    <p class="meta">
+      Make your movie experience even better!
+      Browse our popcorn, drinks, sweets,
+      combos and special deals.
+    </p>
+
+    <a
+      href="{{ url_for('main.booking_snacks',
+                       showtime_id=showtime.id,
+                       seats=seats) }}"
+      class="btn btn-block"
+    >
+      Browse Snacks Menu
+    </a>
+
+    <p class="meta" style="margin-top: 16px;">
+      Food and drinks are optional.
+      You can also continue with tickets only.
+    </p>
+
   </section>
 
+
+
+  <!-- RIGHT PANEL: YOUR BOOKING -->
+
   <section class="panel">
-    <h2>Your booking</h2>
+
+    <h2>Your Booking</h2>
+
     <div class="summary">
-      <p>Seats: <strong>{{ seats | join(', ') }}</strong></p>
-      <p>Tickets: <span id="seats-total">{{ "%.2f"|format(price_per_seat * seats|length) }}</span> €</p>
-      {% if packages %}
-      <p>Packages: <span id="packages-total">0.00</span> €</p>
-      {% endif %}
-      <p>Food &amp; drinks: <span id="food-total">0.00</span> €</p>
-      <p id="package-warning" class="warning" hidden></p>
-      <p>Total: <strong id="booking-total" class="price">{{ "%.2f"|format(price_per_seat * seats|length) }}</strong> €</p>
-      <button type="submit" class="btn btn-block" id="confirm-button">Confirm booking</button>
-      <button type="submit" name="skip_food" value="1" class="btn btn-secondary btn-block">
-        No food, just tickets
-      </button>
-      <p class="form-footer">
-        <a href="{{ url_for('main.booking', showtime_id=showtime.id, seats=seats) }}">&larr; Change seats</a>
+
+      <!-- SEATS -->
+
+      <p>
+        Seats:
+        <strong>{{ seats | join(', ') }}</strong>
       </p>
+
+
+      <!-- TICKETS -->
+
+      <p>
+        Tickets:
+        <span id="seats-total">
+          {{ "%.2f" | format(tickets_total) }}
+        </span> €
+      </p>
+
+
+      <!-- SELECTED SNACKS -->
+
+      {% if selected_food or selected_packages %}
+
+        <hr>
+
+        <h3>Your Snacks</h3>
+
+
+        <!-- SELECTED COMBOS AND DEALS -->
+
+        {% for package, quantity in selected_packages %}
+
+          <p>
+            {{ package.name }} × {{ quantity }}
+            <br>
+
+            <span class="meta">
+              {{ "%.2f" | format(package.price * quantity) }} €
+            </span>
+          </p>
+
+        {% endfor %}
+
+
+        <!-- SELECTED INDIVIDUAL ITEMS -->
+
+        {% for item, quantity in selected_food %}
+
+          <p>
+            {{ item.name }} × {{ quantity }}
+            <br>
+
+            <span class="meta">
+              {{ "%.2f" | format(item.price * quantity) }} €
+            </span>
+          </p>
+
+        {% endfor %}
+
+        <hr>
+
+      {% else %}
+
+        <p class="meta">
+          No snacks selected.
+        </p>
+
+      {% endif %}
+
+
+      <!-- TOTALS -->
+
+      <p>
+        Packages:
+        <span id="packages-total">
+          {{ "%.2f" | format(packages_total) }}
+        </span> €
+      </p>
+
+      <p>
+        Food &amp; drinks:
+        <span id="food-total">
+          {{ "%.2f" | format(food_total) }}
+        </span> €
+      </p>
+
+
+      <!-- PACKAGE VALIDATION -->
+
+      <p
+        id="package-warning"
+        class="warning"
+        hidden
+      ></p>
+
+
+      <!-- FINAL PRICE -->
+
+      <p>
+        Total:
+
+        <strong
+          id="booking-total"
+          class="price"
+        >
+          {{ "%.2f" | format(booking_total) }}
+        </strong> €
+      </p>
+
+
+      <!-- CONFIRM BOOKING -->
+
+      <button
+        type="submit"
+        class="btn btn-block"
+        id="confirm-button"
+      >
+        Confirm Booking
+      </button>
+
+
+      <!-- CHANGE SEATS -->
+
+      <p class="form-footer">
+
+        <a href="{{ url_for('main.booking',
+                            showtime_id=showtime.id,
+                            seats=seats) }}">
+          &larr; Change seats
+        </a>
+
+      </p>
+
     </div>
+
   </section>
+
 </form>
 
-<script src="{{ url_for('static', filename='booking_food.js') }}"></script>
+
+<!-- EXISTING BOOKING CALCULATIONS -->
+
+<script src="{{ url_for('static',
+                         filename='booking_food.js') }}">
+</script>
+
 {% endblock %}

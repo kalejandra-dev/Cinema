@@ -1,0 +1,634 @@
+
+{% extends "base.html" %}
+{% block title %}Choose Snacks · {{ showtime.movie.title }}{% endblock %}
+{% block content %}
+
+<div class="snacks-page booking-snacks-page">
+  <style>
+    /* Prices look exactly like ordinary menu prices. */
+    .booking-snacks-page .snack-price-button,
+    .booking-snacks-page .snack-price-button:hover,
+    .booking-snacks-page .snack-price-button:active {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      line-height: inherit;
+      padding: 0;
+      margin: 0;
+      box-shadow: none;
+      transform: none;
+      transition: none;
+      cursor: pointer;
+    }
+
+    .booking-snacks-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      padding: 30px 0 50px;
+      color: white;
+    }
+  </style>
+
+  <form id="booking-snacks-form" method="post"
+        action="{{ url_for('main.booking_snacks', showtime_id=showtime.id) }}">
+
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    {% for seat in seats %}
+      <input type="hidden" name="seats" value="{{ seat }}">
+    {% endfor %}
+
+    {# Hidden inputs store snack quantities #}
+    {% for item in food %}
+      <input type="hidden"
+             name="food_{{ item.id }}"
+             value="{{ cart['food'].get(item.id | string, 0) }}"
+             data-snack-qty
+             data-price-cents="{{ (item.price * 100) | int }}">
+    {% endfor %}
+
+    {% for package in packages %}
+      <input type="hidden"
+             name="package_{{ package.id }}"
+             value="{{ cart['packages'].get(package.id | string, 0) }}"
+             data-snack-qty
+             data-price-cents="{{ (package.price * 100) | int }}">
+    {% endfor %}
+
+
+    {# ORIGINAL MENU PRODUCT DATA #}
+
+    {% set sections = [
+      {
+        'title': 'DRINKS',
+        'image': 'snacks/drink.jpg',
+        'alt': 'Cinema drink cup',
+        'variants': [
+          ('SMALL', '750 ml', 'Drink - Small'),
+          ('MEDIUM', '1 L', 'Drink - Medium'),
+          ('LARGE', '1.25 L', 'Drink - Large')
+        ]
+      },
+      {
+        'title': 'POPCORN',
+        'image': 'snacks/popcorn.png',
+        'alt': 'Cinema popcorn',
+        'variants': [
+          ('SMALL', 'Small bucket', 'Popcorn - Small'),
+          ('MEDIUM', 'Medium bucket', 'Popcorn - Medium'),
+          ('LARGE', 'Large bucket', 'Popcorn - Large')
+        ]
+      },
+      {
+        'title': 'NACHOS',
+        'image': 'snacks/nachos.jpg',
+        'alt': 'Nachos with cheese and salsa',
+        'variants': [
+          ('PLAIN', 'No sauce', 'Nachos - Plain'),
+          ('1 SAUCE', 'Salsa or Cheese', 'Nachos - 1 Sauce'),
+          ('2 SAUCES', 'Salsa and Cheese', 'Nachos - 2 Sauces')
+        ]
+      },
+      {
+        'title': 'HOT DOGS',
+        'image': 'snacks/hotdog.jpg',
+        'alt': 'Classic hot dog',
+        'variants': [
+          ('CLASSIC', 'One hot dog', 'Hot Dog - Classic')
+        ]
+      }
+    ] %}
+
+    {% set candies = [
+      ('SNICKERS', 'Snickers', 'snacks/snickers.png'),
+      ('TWIX', 'Twix', 'snacks/twix.jpg'),
+      ('FILIPINOS', 'Filipinos', 'snacks/filipinos.jpg'),
+      ('MILKA', 'Milka', 'snacks/milka.jpg'),
+      ('HARIBO', 'Haribo', 'snacks/haribo.jpg')
+    ] %}
+
+    {% set popcorn_combos = [
+      ('SMALL', 'Small popcorn + Small drink', 'Popcorn Combo - Small'),
+      ('MEDIUM', 'Medium popcorn + Medium drink', 'Popcorn Combo - Medium'),
+      ('LARGE', 'Large popcorn + Large drink', 'Popcorn Combo - Large')
+    ] %}
+
+    {% set other_combos = [
+      (
+        'NACHOS COMBO',
+        'snacks/nachocombo.png',
+        'Nachos with sauces and a drink',
+        'Nachos with 2 sauces + Medium drink',
+        'Nachos Combo'
+      ),
+      (
+        'HOT DOG COMBO',
+        'snacks/hotcombo.png',
+        'Hot dog with a drink',
+        '1 hot dog + Medium drink',
+        'Hot Dog Combo'
+      )
+    ] %}
+
+    {% set deals = [
+      {
+        'title': 'DUO DEAL',
+        'name': 'Duo Deal',
+        'image': 'snacks/Duo.png',
+        'alt': 'Popcorn, drinks and chocolates for two',
+        'items': [
+          '1 Large popcorn',
+          '2 Medium drinks',
+          '2 Snickers'
+        ],
+        'original_price': '€14.00',
+        'saving': 'SAVE €2.00'
+      },
+      {
+        'title': 'FAMILY DEAL',
+        'name': 'Family Deal',
+        'image': 'snacks/family.png',
+        'alt': 'Family cinema snack bundle',
+        'items': [
+          '2 Large popcorn',
+          '4 Medium drinks',
+          '2 Haribo',
+          '2 Snickers'
+        ],
+        'original_price': '€31.00',
+        'saving': 'SAVE €1.00'
+      }
+    ] %}
+
+
+    <!-- MENU: NO HERO SECTION -->
+
+    <section id="snacks-menu" class="snacks-menu">
+
+      <div class="snacks-intro">
+        <h2>MENU</h2>
+        <span class="snacks-intro-line"></span>
+      </div>
+
+      <div class="snacks-products">
+
+
+        <!-- DRINKS, POPCORN, NACHOS AND HOT DOGS -->
+
+        {% for section in sections %}
+
+          <section class="snacks-product">
+
+            <h3 class="snacks-product-title">
+              {{ section.title }}
+            </h3>
+
+            <div class="snacks-product-panel">
+
+              <div class="snacks-product-photo">
+                <img
+                  src="{{ url_for('static', filename=section.image) }}"
+                  alt="{{ section.alt }}"
+                  loading="lazy">
+              </div>
+
+              <div class="snacks-options">
+
+                {% for option_name, detail, db_name in section.variants %}
+
+                  {% set item = food
+                    | selectattr('name', 'equalto', db_name)
+                    | first
+                    | default(none) %}
+
+                  <div class="snacks-option">
+
+                    <div class="snacks-option-name">
+                      {{ option_name }}
+                    </div>
+
+                    <div class="snacks-option-detail">
+                      {{ detail }}
+                    </div>
+
+                    <div class="snacks-option-price">
+
+                      {% if item %}
+
+                        <button
+                          type="button"
+                          class="snack-price-button"
+                          data-snack-add="food_{{ item.id }}"
+                          aria-label="Add {{ item.name }}">
+
+                          €{{ '%.2f' | format(item.price) }}
+
+                        </button>
+
+                      {% else %}
+                        Unavailable
+                      {% endif %}
+
+                    </div>
+
+                  </div>
+
+                {% endfor %}
+
+              </div>
+
+            </div>
+
+          </section>
+
+        {% endfor %}
+
+
+        <!-- SWEET TREATS -->
+
+        <section class="snacks-product">
+
+          <h3 class="snacks-product-title">
+            SWEET TREATS
+          </h3>
+
+          <div class="snacks-candy-panel">
+
+            {% for label, db_name, image in candies %}
+
+              {% set item = food
+                | selectattr('name', 'equalto', db_name)
+                | first
+                | default(none) %}
+
+              <div class="snacks-candy-item">
+
+                <h4 class="snacks-candy-name">
+                  {{ label }}
+                </h4>
+
+                <img
+                  src="{{ url_for('static', filename=image) }}"
+                  alt="{{ label }}"
+                  loading="lazy">
+
+                <div class="snacks-candy-price">
+
+                  {% if item %}
+
+                    <button
+                      type="button"
+                      class="snack-price-button"
+                      data-snack-add="food_{{ item.id }}"
+                      aria-label="Add {{ item.name }}">
+
+                      €{{ '%.2f' | format(item.price) }}
+
+                    </button>
+
+                  {% else %}
+                    Unavailable
+                  {% endif %}
+
+                </div>
+
+              </div>
+
+            {% endfor %}
+
+          </div>
+
+        </section>
+
+
+        <!-- MAKE IT A COMBO -->
+
+        <section class="snacks-combo-group">
+
+          <div class="snacks-intro snacks-combo-intro">
+
+            <h2>MAKE IT A COMBO...</h2>
+
+            <span class="snacks-intro-line"></span>
+
+          </div>
+
+
+          <!-- POPCORN COMBO -->
+
+          <section class="snacks-product snacks-combo-feature">
+
+            <h3 class="snacks-product-title snacks-combo-title">
+              POPCORN COMBO
+            </h3>
+
+            <div class="snacks-product-panel">
+
+              <div class="snacks-product-photo">
+
+                <img
+                  src="{{ url_for('static', filename='snacks/popcombo.png') }}"
+                  alt="Popcorn and drink combo"
+                  loading="lazy">
+
+              </div>
+
+              <div class="snacks-options">
+
+                {% for label, detail, db_name in popcorn_combos %}
+
+                  {% set package = packages
+                    | selectattr('name', 'equalto', db_name)
+                    | first
+                    | default(none) %}
+
+                  <div class="snacks-option">
+
+                    <div class="snacks-option-name">
+                      {{ label }}
+                    </div>
+
+                    <div class="snacks-option-detail">
+                      {{ detail }}
+                    </div>
+
+                    <div class="snacks-option-price">
+
+                      {% if package %}
+
+                        <button
+                          type="button"
+                          class="snack-price-button"
+                          data-snack-add="package_{{ package.id }}"
+                          aria-label="Add {{ package.name }}">
+
+                          €{{ '%.2f' | format(package.price) }}
+
+                        </button>
+
+                      {% else %}
+                        Unavailable
+                      {% endif %}
+
+                    </div>
+
+                  </div>
+
+                {% endfor %}
+
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- NACHOS AND HOT DOG COMBOS -->
+
+          <div class="snacks-combo-pair">
+
+            {% for title, image, alt, detail, db_name in other_combos %}
+
+              {% set package = packages
+                | selectattr('name', 'equalto', db_name)
+                | first
+                | default(none) %}
+
+              <section class="snacks-product snacks-combo-small">
+
+                <h3 class="snacks-product-title snacks-combo-title">
+                  {{ title }}
+                </h3>
+
+                <div class="snacks-product-panel">
+
+                  <div class="snacks-product-photo">
+
+                    <img
+                      src="{{ url_for('static', filename=image) }}"
+                      alt="{{ alt }}"
+                      loading="lazy">
+
+                  </div>
+
+                  <div class="snacks-options">
+
+                    <div class="snacks-option">
+
+                      <div class="snacks-option-name">
+                        CLASSIC COMBO
+                      </div>
+
+                      <div class="snacks-option-detail">
+                        {{ detail }}
+                      </div>
+
+                      <div class="snacks-option-price">
+
+                        {% if package %}
+
+                          <button
+                            type="button"
+                            class="snack-price-button"
+                            data-snack-add="package_{{ package.id }}"
+                            aria-label="Add {{ package.name }}">
+
+                            €{{ '%.2f' | format(package.price) }}
+
+                          </button>
+
+                        {% else %}
+                          Unavailable
+                        {% endif %}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </section>
+
+            {% endfor %}
+
+          </div>
+
+        </section>
+
+
+        <!-- DEALS -->
+
+        <section class="snacks-deals-section">
+
+          <div class="snacks-intro snacks-deals-intro">
+
+            <h2>...OR GET A DEAL!</h2>
+
+            <span class="snacks-intro-line"></span>
+
+          </div>
+
+          <div class="snacks-deals-grid">
+
+            {% for deal in deals %}
+
+              {% set package = packages
+                | selectattr('name', 'equalto', deal.name)
+                | first
+                | default(none) %}
+
+              <section class="snacks-product snacks-deal">
+
+                <h3 class="snacks-product-title snacks-deal-title">
+                  {{ deal.title }}
+                </h3>
+
+                <div class="snacks-deal-panel">
+
+                  <div class="snacks-deal-photo">
+
+                    <img
+                      src="{{ url_for('static', filename=deal.image) }}"
+                      alt="{{ deal.alt }}"
+                      loading="lazy">
+
+                  </div>
+
+                  <div class="snacks-deal-info">
+
+                    <div class="snacks-deal-contents">
+
+                      {% for included in deal['items'] %}
+
+                        <p>{{ included }}</p>
+
+                      {% endfor %}
+
+                    </div>
+
+                    <div class="snacks-deal-pricing">
+
+                      <span class="snacks-deal-original">
+                        {{ deal.original_price }}
+                      </span>
+
+                      <div class="snacks-deal-price">
+
+                        {% if package %}
+
+                          <button
+                            type="button"
+                            class="snack-price-button"
+                            data-snack-add="package_{{ package.id }}"
+                            aria-label="Add {{ package.name }}">
+
+                            €{{ '%.2f' | format(package.price) }}
+
+                          </button>
+
+                        {% else %}
+                          Unavailable
+                        {% endif %}
+
+                      </div>
+
+                      <span class="snacks-deal-saving">
+                        {{ deal.saving }}
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                </div>
+
+              </section>
+
+            {% endfor %}
+
+          </div>
+
+        </section>
+
+      </div>
+
+
+      <!-- TOTAL + BACK TO BOOKING -->
+
+      <div class="booking-snacks-footer">
+
+        <span>
+          Snack total:
+          <strong id="snack-total">€0.00</strong>
+        </span>
+
+        <button type="submit" class="btn">
+          Back to Booking
+        </button>
+
+      </div>
+
+    </section>
+
+  </form>
+
+</div>
+
+
+<!-- INTERACTIVE PRICES -->
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+  const form = document.getElementById('booking-snacks-form');
+  const total = document.getElementById('snack-total');
+
+  if (!form || !total) return;
+
+  const quantities = form.querySelectorAll('input[data-snack-qty]');
+
+  function updateTotal() {
+
+    let cents = 0;
+
+    quantities.forEach(input => {
+      cents += Number(input.value || 0)
+             * Number(input.dataset.priceCents);
+    });
+
+    total.textContent = `€${(cents / 100).toFixed(2)}`;
+  }
+
+  form.querySelectorAll('[data-snack-add]').forEach(button => {
+
+    button.addEventListener('click', () => {
+
+      const input = form.elements.namedItem(
+        button.dataset.snackAdd
+      );
+
+      if (input && Number(input.value) < 10) {
+
+        input.value = Number(input.value) + 1;
+
+        updateTotal();
+      }
+
+    });
+
+  });
+
+  updateTotal();
+
+});
+</script>
+
+{% endblock %}

@@ -3,7 +3,8 @@ from decimal import Decimal
 
 import flask_login
 from flask import (
-    Blueprint, render_template, request, redirect, url_for, flash, abort, jsonify
+    Blueprint, render_template, request, redirect,
+    url_for, flash, abort, jsonify, session
 )
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
@@ -92,6 +93,24 @@ def available_food():
         db.select(FoodItem).where(FoodItem.available == True)  # noqa: E712
         .order_by(FoodItem.name)
     ).all()
+
+
+def get_snack_cart(showtime_id, seats):
+    """Retrieve the current user's cart for these seats and showtime."""
+    cart = session.get("snack_cart") or {}
+
+    if (
+        cart.get("user_id") != flask_login.current_user.id
+        or cart.get("showtime_id") != showtime_id
+        or cart.get("seats") != sorted_seats(seats)
+    ):
+        return {"food": {}, "packages": {}}
+
+    return {
+        "food": cart.get("food", {}),
+        "packages": cart.get("packages", {}),
+    }
+
 
 
 def check_seats(showtime, seats):
@@ -324,21 +343,166 @@ def booking(showtime_id):
                            taken=taken_seats(showtime), selected=selected)
 
 
+
 @bp.route("/booking/<int:showtime_id>/food")
 @customer_required
 def booking_food(showtime_id):
     showtime = db.get_or_404(Showtime, showtime_id)
+
     if has_started(showtime):
         return showtime_started(showtime)
+
     seats = set(request.args.getlist("seats"))
     error = check_seats(showtime, seats)
+
     if error:
         flash(error)
-        return redirect(url_for("main.booking", showtime_id=showtime.id))
-    return render_template("main/booking_food.html", showtime=showtime,
-                           seats=sorted_seats(seats),
-                           price_per_seat=ticket_price_for(showtime),
-                           packages=available_packages(), food=available_food())
+        return redirect(url_for(
+            "main.booking",
+            showtime_id=showtime.id
+        ))
+
+    seats = sorted_seats(seats)
+
+    # Get products from the database
+    food = available_food()
+    packages = available_packages()
+
+    # Get the customer's saved snack selections
+    cart = get_snack_cart(showtime.id, seats)
+
+    selected_food = [
+        (item, cart["food"][str(item.id)])
+        for item in food
+        if cart["food"].get(str(item.id), 0) > 0
+    ]
+
+    selected_packages = [
+        (package, cart["packages"][str(package.id)])
+        for package in packages
+        if cart["packages"].get(str(package.id), 0) > 0
+    ]
+
+    # Calculate prices using the database, not the browser
+    price_per_seat = ticket_price_for(showtime)
+
+    package_tickets = sum(
+        package.ticket_quantity * quantity
+        for package, quantity in selected_packages
+    )
+
+    tickets_total = (
+        max(len(seats) - package_tickets, 0)
+        * price_per_seat
+    )
+
+    food_total = sum(
+        (item.price * quantity for item, quantity in selected_food),
+        Decimal("0.00")
+    )
+
+    packages_total = sum(
+        (package.price * quantity for package, quantity in selected_packages),
+        Decimal("0.00")
+    )
+
+    booking_total = tickets_total + food_total + packages_total
+
+    return render_template(
+        "main/booking_food.html",
+        showtime=showtime,
+        seats=seats,
+        price_per_seat=price_per_seat,
+        food=food,
+        packages=packages,
+        cart=cart,
+        selected_food=selected_food,
+        selected_packages=selected_packages,
+        tickets_total=tickets_total,
+        food_total=food_total,
+        packages_total=packages_total,
+        booking_total=booking_total,
+    )
+
+
+@bp.route("/booking/<int:showtime_id>/snacks", methods=["GET", "POST"])
+@customer_required
+def booking_snacks(showtime_id):
+    showtime = db.get_or_404(Showtime, showtime_id)
+
+    if has_started(showtime):
+        return showtime_started(showtime)
+
+    # GET: seats arrive in the URL
+    # POST: seats arrive in the submitted form
+    if request.method == "POST":
+        seats = set(request.form.getlist("seats"))
+    else:
+        seats = set(request.args.getlist("seats"))
+
+    error = check_seats(showtime, seats)
+
+    if error:
+        flash(error)
+        return redirect(url_for(
+            "main.booking",
+            showtime_id=showtime.id
+        ))
+
+    seats = sorted_seats(seats)
+
+    food = available_food()
+    packages = available_packages()
+
+    if request.method == "POST":
+        # Read the quantities selected in the interactive menu
+        chosen_food = read_quantities(
+            request.form, "food", food
+        )
+        chosen_packages = read_quantities(
+            request.form, "package", packages
+        )
+
+        if chosen_food is None or chosen_packages is None:
+            flash("Invalid snack quantity.")
+            return redirect(url_for(
+                "main.booking_snacks",
+                showtime_id=showtime.id,
+                seats=seats,
+            ))
+
+        # Save only IDs and quantities, never prices
+        session["snack_cart"] = {
+            "user_id": flask_login.current_user.id,
+            "showtime_id": showtime.id,
+            "seats": seats,
+            "food": {
+                str(item.id): quantity
+                for item, quantity in chosen_food
+            },
+            "packages": {
+                str(package.id): quantity
+                for package, quantity in chosen_packages
+            },
+        }
+
+        # Return to the booking confirmation page
+        return redirect(url_for(
+            "main.booking_food",
+            showtime_id=showtime.id,
+            seats=seats,
+        ))
+
+    # GET: display the interactive menu
+    return render_template(
+        "main/booking_snacks.html",
+        showtime=showtime,
+        seats=seats,
+        food=food,
+        packages=packages,
+        cart=get_snack_cart(showtime.id, seats),
+    )
+
 
 
 @bp.route("/booking/<int:showtime_id>/confirm", methods=["POST"])
@@ -410,6 +574,8 @@ def confirm_booking(showtime_id):
         db.session.rollback()
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
+        # The booking is saved, so clear the temporary snack cart
+    session.pop("snack_cart", None)
     flash("Booking confirmed. Enjoy the movie!")
     if send_booking_confirmation(new_booking):
         flash(f"We sent the details to {flask_login.current_user.email}.")
