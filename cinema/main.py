@@ -407,10 +407,12 @@ def confirm_booking(showtime_id):
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
     flash("Booking confirmed. Enjoy the movie!")
-    if send_booking_confirmation(new_booking):
+    email_sent = send_booking_confirmation(new_booking)
+    if email_sent is True:
         flash(f"We sent the details to {flask_login.current_user.email}.")
-    else:
+    elif email_sent is False:
         flash("We couldn't send the confirmation email, but your booking is saved.")
+    # None: no email server configured, the email was only printed in the terminal
     return redirect(url_for("main.my_bookings"))
 
 
