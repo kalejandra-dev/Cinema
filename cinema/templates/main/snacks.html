@@ -1,0 +1,202 @@
+
+{% extends "base.html" %}
+
+{% block title %}Snacks & Drinks{% endblock %}
+
+{% block content %}
+
+<div class="snacks-page">
+
+    <!-- HERO SECTION -->
+    <section class="snacks-hero">
+
+        <div class="snacks-hero-content">
+
+            <p class="snacks-kicker">
+                CINEMA PARADISO · SNACKS & MORE
+            </p>
+
+            <h1>
+                GOOD MOVIES<br>
+                GREAT SNACKS
+            </h1>
+
+            <p class="snacks-description">
+                All the food essentials for a great
+                movie experience at the theater
+            </p>
+
+            <a href="#snacks-menu" class="btn btn-large">
+               ↓ Check out snacks ↓
+            </a>
+
+        </div>
+
+    </section>
+
+
+    <!-- SNACKS HEADING -->
+    <section id="snacks-menu" class="snacks-menu">
+
+        <div class="snacks-intro">
+
+            <h2>MENU</h2>
+
+            <span class="snacks-intro-line"></span>
+
+        </div>
+
+
+        <!-- MENU DATA -->
+        {% set sections = [
+
+            {
+                "title": "DRINKS",
+                "image": "snacks/drink.jpg",
+                "alt": "Red and white striped cinema drink cup",
+                "variants": [
+                    {
+                        "name": "SMALL",
+                        "detail": "750 ml",
+                        "price": "€2.50"
+                    },
+                    {
+                        "name": "MEDIUM",
+                        "detail": "1 L",
+                        "price": "€3.50"
+                    },
+                    {
+                        "name": "LARGE",
+                        "detail": "1.25 L",
+                        "price": "€4.50"
+                    }
+                ]
+            },
+
+            {
+                "title": "POPCORN",
+                "image": "snacks/popcorn.png",
+                "alt": "Three sizes of cinema popcorn",
+                "variants": [
+                    {
+                        "name": "SMALL",
+                        "detail": "Small bucket",
+                        "price": "€3.00"
+                    },
+                    {
+                        "name": "MEDIUM",
+                        "detail": "Medium bucket",
+                        "price": "€4.00"
+                    },
+                    {
+                        "name": "LARGE",
+                        "detail": "Large bucket",
+                        "price": "€5.00"
+                    }
+                ]
+            },
+
+            {
+                "title": "NACHOS",
+                "image": "snacks/nachos.jpg",
+                "alt": "Cinema nachos with cheese and salsa",
+                "variants": [
+                    {
+                        "name": "PLAIN",
+                        "detail": "No sauce",
+                        "price": "€2.00"
+                    },
+                    {
+                        "name": "1 SAUCE",
+                        "detail": "Salsa or Cheese",
+                        "price": "€2.50"
+                    },
+                    {
+                        "name": "2 SAUCES",
+                        "detail": "Salsa and Cheese",
+                        "price": "€3.00"
+                    }
+                ]
+            },
+
+            {
+                "title": "HOT DOGS",
+                "image": "snacks/hotdog.jpg",
+                "alt": "Classic hot dog with mustard and ketchup",
+                "variants": [
+                    {
+                        "name": "CLASSIC",
+                        "detail": "One hot dog",
+                        "price": "€1.50"
+                    }
+                ]
+            }
+
+        ] %}
+
+
+        <!-- PRODUCT SECTIONS -->
+        <div class="snacks-products">
+
+            {% for section in sections %}
+
+            <section class="snacks-product">
+
+                <!-- TITLE ABOVE WHITE PANEL -->
+                <h3 class="snacks-product-title">
+                    {{ section.title }}
+                </h3>
+
+
+                <div class="snacks-product-panel">
+
+                    <!-- PRODUCT PHOTO -->
+                    <div class="snacks-product-photo">
+
+                        <img
+                            src="{{ url_for('static', filename=section.image) }}"
+                            alt="{{ section.alt }}"
+                            loading="lazy"
+                        >
+
+                    </div>
+
+
+                    <!-- OPTIONS AND PRICES -->
+                    <div class="snacks-options">
+
+                        {% for option in section.variants %}
+
+                        <div class="snacks-option">
+
+                            <div class="snacks-option-name">
+                                {{ option.name }}
+                            </div>
+
+                            <div class="snacks-option-detail">
+                                {{ option.detail }}
+                            </div>
+
+                            <div class="snacks-option-price">
+                                {{ option.price }}
+                            </div>
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+</div>
+
+{% endblock %}
