@@ -1041,3 +1041,27 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
         grid-template-columns: 1fr;
     }
 }
+
+
+/* working on fixing the 'See Showtimes' buttons in the home page */
+
+.movie-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.movie-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.movie-card-body > .btn {
+    margin-top: auto;
+    align-self: flex-start;
+}
+
+.movie-card-body .meta {
+    margin-bottom: 1.2rem;
+}
