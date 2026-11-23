@@ -1510,3 +1510,415 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
         font-size: 1.5rem;
     }
 }
+
+
+
+/* ============= SWEET TREATS ============= */
+
+.snacks-candy-panel {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    background: #fff;
+    color: #171717;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 18px 45px rgba(0,0,0,.25);
+}
+
+.snacks-candy-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 0;
+    min-height: 300px;
+    padding: 25px 15px 20px;
+    text-align: center;
+}
+
+.snacks-candy-item + .snacks-candy-item {
+    border-left: 1px solid #dedede;
+}
+
+.snacks-candy-name {
+    margin: 0 0 15px;
+    color: #171717;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+}
+
+.snacks-candy-item img {
+    width: 100%;
+    height: 170px;
+    object-fit: contain;
+    margin-bottom: 15px;
+}
+
+.snacks-candy-price {
+    margin-top: auto;
+    color: #171717;
+    font-family: "Anton", Impact, sans-serif;
+    font-size: 2rem;
+}
+
+@media (max-width: 850px) {
+    .snacks-candy-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .snacks-candy-item {
+        border-bottom: 1px solid #dedede;
+    }
+
+    .snacks-candy-item + .snacks-candy-item {
+        border-left: none;
+    }
+
+    .snacks-candy-item:nth-child(even) {
+        border-left: 1px solid #dedede;
+    }
+
+    .snacks-candy-item:last-child {
+        border-bottom: none;
+    }
+}
+
+@media (max-width: 400px) {
+    .snacks-candy-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .snacks-candy-item:nth-child(even) {
+        border-left: none;
+    }
+}
+
+
+
+/* ===========================================
+   MAKE IT A COMBO
+   =========================================== */
+
+/* Group the heading and three combo sections */
+.snacks-combo-group {
+    display: flex;
+    flex-direction: column;
+    gap: 42px;
+    margin-top: 25px;
+}
+
+/* Heading uses the same design as MENU */
+.snacks-combo-intro {
+    margin-bottom: 18px;
+    padding-top: 35px;
+}
+
+.snacks-combo-intro h2 {
+    font-size: clamp(3rem, 8vw, 7rem);
+    text-align: center;
+}
+
+/* Center the title above every combo panel */
+.snacks-combo-title {
+    text-align: center;
+}
+
+/* Popcorn combo keeps the existing full-width
+   white panel, left image and three columns */
+.snacks-combo-feature {
+    width: 100%;
+}
+
+/* Two smaller combo sections on the same row */
+.snacks-combo-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 25px;
+    align-items: stretch;
+}
+
+/* Each small panel: photo left, details right */
+.snacks-combo-small .snacks-product-panel {
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    min-height: 230px;
+    height: 100%;
+}
+
+/* Photos inside the smaller panels */
+.snacks-combo-small .snacks-product-photo {
+    min-height: 230px;
+}
+
+.snacks-combo-small .snacks-product-photo img {
+    width: 100%;
+    height: 100%;
+    max-height: 230px;
+    object-fit: contain;
+    padding: 10px;
+}
+
+/* Give the text enough room */
+.snacks-combo-small .snacks-options {
+    min-width: 0;
+    padding: 18px 10px;
+}
+
+.snacks-combo-small .snacks-option {
+    gap: 18px;
+    padding: 10px 5px;
+}
+
+/* Combo description */
+.snacks-combo-small .snacks-option-detail {
+    max-width: 22ch;
+    line-height: 1.6;
+    text-align: center;
+}
+
+/* Consistent prices */
+.snacks-combo-small .snacks-option-price {
+    font-size: clamp(1.7rem, 2.5vw, 2.25rem);
+}
+
+/* Tablet and mobile: stack the two combo panels */
+@media (max-width: 850px) {
+    .snacks-combo-pair {
+        grid-template-columns: 1fr;
+        gap: 35px;
+    }
+}
+
+/* Keep the photo on the left of the smaller
+   combo panels, even on mobile */
+@media (max-width: 700px) {
+    .snacks-combo-group {
+        gap: 32px;
+    }
+
+    .snacks-combo-intro {
+        padding-top: 15px;
+        margin-bottom: 8px;
+    }
+
+    .snacks-combo-small .snacks-product-panel {
+        grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    }
+
+    .snacks-combo-small .snacks-product-photo {
+        min-height: 200px;
+        border-bottom: none;
+        border-right: 1px solid #e0e0e0;
+    }
+
+    .snacks-combo-small .snacks-product-photo img {
+        height: 200px;
+        max-height: 200px;
+    }
+
+    .snacks-combo-small .snacks-options {
+        min-height: 200px;
+    }
+
+    .snacks-combo-small .snacks-option-name {
+        font-size: .8rem;
+    }
+
+    .snacks-combo-small .snacks-option-detail {
+        font-size: .8rem;
+    }
+}
+
+
+/* ===========================================
+   CINEMA PARADISO — DEALS
+   =========================================== */
+
+/* Main section */
+.snacks-deals-section {
+    margin-top: 35px;
+}
+
+/* Large centered heading */
+.snacks-deals-intro {
+    padding-top: 40px;
+    margin-bottom: 55px;
+}
+
+.snacks-deals-intro h2 {
+    font-size: clamp(4rem, 9vw, 7rem);
+    text-align: center;
+}
+
+/* Two deals next to each other */
+.snacks-deals-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 25px;
+    align-items: stretch;
+}
+
+/* Each deal */
+.snacks-deal {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Titles centered above panels */
+.snacks-deal-title {
+    text-align: center;
+}
+
+/* White rectangular panel */
+.snacks-deal-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+
+    min-height: 270px;
+    flex: 1;
+
+    background: #ffffff;
+    color: #171717;
+
+    border-radius: 5px;
+    overflow: hidden;
+
+    box-shadow: 0 18px 45px rgba(0,0,0,.25);
+}
+
+/* ---------- LEFT PHOTOGRAPH ---------- */
+
+.snacks-deal-photo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 0;
+
+    background: #ffffff;
+    border-right: 1px solid #e0e0e0;
+}
+
+.snacks-deal-photo img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    max-height: 270px;
+
+    object-fit: contain;
+    object-position: center;
+
+    padding: 10px;
+}
+
+/* ---------- RIGHT INFORMATION ---------- */
+
+.snacks-deal-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+
+    min-width: 0;
+
+    padding: 25px 12px;
+    text-align: center;
+}
+
+/* List of included products */
+.snacks-deal-contents {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.snacks-deal-contents p {
+    margin: 0;
+
+    color: #555555;
+    font-size: .9rem;
+    line-height: 1.5;
+}
+
+/* ---------- PRICES ---------- */
+
+.snacks-deal-pricing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 4px;
+    margin-top: 20px;
+}
+
+/* Original price crossed out */
+.snacks-deal-original {
+    color: #999999;
+    font-size: .85rem;
+    text-decoration: line-through;
+}
+
+/* Actual deal price */
+.snacks-deal-price {
+    color: #171717;
+
+    font-family: "Anton", Impact, sans-serif;
+    font-size: clamp(2rem, 3vw, 2.6rem);
+
+    line-height: 1.1;
+}
+
+/* Discount */
+.snacks-deal-saving {
+    color: #c52342;
+
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media (max-width: 900px) {
+
+    .snacks-deals-grid {
+        grid-template-columns: 1fr;
+        gap: 35px;
+    }
+
+    .snacks-deal-panel {
+        min-height: 250px;
+    }
+
+    .snacks-deal-photo img {
+        max-height: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .snacks-deals-intro {
+        padding-top: 20px;
+        margin-bottom: 40px;
+    }
+
+    .snacks-deal-panel {
+        grid-template-columns: minmax(0, 38%) minmax(0, 1fr);
+    }
+
+    .snacks-deal-info {
+        padding: 18px 8px;
+    }
+
+    .snacks-deal-contents p {
+        font-size: .8rem;
+    }
+
+    .snacks-deal-price {
+        font-size: 2rem;
+    }
+}
+
