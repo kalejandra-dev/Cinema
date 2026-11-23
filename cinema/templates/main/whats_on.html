@@ -1,0 +1,93 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="whats-on-page">
+
+    <div class="whats-on-header">
+        <p class="whats-on-eyebrow">
+            CINEMA PARADISO · SCHEDULED SCREENINGS
+        </p>
+
+        <h1>TODAY'S SHOWINGS</h1>
+
+        <p class="whats-on-date">
+            {{ today.strftime("%A, %d %B %Y") }}
+        </p>
+    </div>
+
+    {% if programmes %}
+
+    <div class="whats-on-grid">
+
+        {% for item in programmes %}
+        {% set movie = item.movie %}
+
+        <article class="whats-on-card">
+
+            <div class="whats-on-poster">
+                {% with extra_class = "" %}
+                    {% include "_poster.html" %}
+                {% endwith %}
+            </div>
+
+            <div class="whats-on-info">
+
+                <h2>{{ movie.title }}</h2>
+
+                <p class="whats-on-meta">
+                    {{ movie.genre }} ·
+                    {{ movie.duration }} min ·
+                    {{ movie.age_rating }}
+                </p>
+
+                <p class="whats-on-label">
+                    TODAY
+                </p>
+
+                <div class="whats-on-times">
+
+                    {% for showtime in item.showtimes %}
+
+                    <a
+                        class="whats-on-time"
+                        href="{{ url_for('main.booking',
+                                         showtime_id=showtime.id) }}"
+                    >
+                        <span>
+                            {{ showtime.time.strftime("%H:%M") }}
+                        </span>
+
+                        <small>
+                            {{ showtime.screen.name }}
+                        </small>
+                    </a>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </article>
+
+        {% endfor %}
+
+    </div>
+
+    {% else %}
+
+    <div class="whats-on-empty">
+        <h2>No more movies for today</h2>
+        <p>Come back tomorrow, please!</p>
+        <a href="{{ url_for('main.index') }}" class="btn">
+            Back
+        </a>
+    </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}
