@@ -68,7 +68,10 @@ def send_booking_confirmation(booking):
         return None
 
     try:
-        with smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"], timeout=10) as smtp:
+        # local_hostname: by default smtplib sends the computer name, and Gmail
+        # rejects it (error 501) when it has non-ASCII characters (e.g. Chinese)
+        with smtplib.SMTP(config["MAIL_SERVER"], config["MAIL_PORT"],
+                          local_hostname="localhost", timeout=10) as smtp:
             smtp.starttls()
             if config.get("MAIL_USERNAME"):
                 smtp.login(config["MAIL_USERNAME"], config["MAIL_PASSWORD"])
