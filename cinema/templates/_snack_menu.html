@@ -1,0 +1,174 @@
+{# Snacks menu, built from the database.
+   Needs: sections, combos, deals (see snack_menu() in main.py) and
+   interactive: True in the booking (shows "− n +"), False in the public /snacks page.
+   When interactive, it also needs cart and price_per_seat. #}
+
+{% macro quantity(prefix, thing, tickets=0) %}
+  {% if interactive %}
+    {% set value = cart[prefix ~ 's' if prefix == 'package' else prefix].get(thing.id | string, 0) %}
+    <div class="qty-stepper" data-stepper>
+      <button type="button" class="qty-btn" data-step="-1" aria-label="Remove one {{ thing.name }}">&minus;</button>
+      <input type="number" class="qty-input" name="{{ prefix }}_{{ thing.id }}"
+             value="{{ value }}" min="0" max="10" inputmode="numeric"
+             data-price="{{ thing.price }}" data-tickets="{{ tickets }}"
+             aria-label="How many {{ thing.name }}">
+      <button type="button" class="qty-btn" data-step="1" aria-label="Add one {{ thing.name }}">+</button>
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{% macro price_and_quantity(prefix, thing, available, tickets=0) %}
+  {% if available %}
+    <div class="snacks-option-price">€{{ "%.2f" | format(thing.price) }}</div>
+    {{ quantity(prefix, thing, tickets) }}
+  {% else %}
+    <div class="snacks-option-price snacks-sold-out">Sold out</div>
+  {% endif %}
+{% endmacro %}
+
+{% macro photo(url, alt) %}
+  <div class="snacks-product-photo">
+    {% if url %}<img src="{{ url }}" alt="{{ alt }}" loading="lazy">{% endif %}
+  </div>
+{% endmacro %}
+
+<div class="snacks-intro">
+  <h2>MENU</h2>
+  <span class="snacks-intro-line"></span>
+</div>
+
+<div class="snacks-products">
+
+  {# ---------- Food, by category ---------- #}
+  {% for category, groups in sections %}
+
+    {% if category.name == 'sweets' %}
+      {# Sweets: one card per item, each with its own picture #}
+      <section class="snacks-product">
+        <h3 class="snacks-product-title">{{ category.title | upper }}</h3>
+        <div class="snacks-candy-panel">
+          {% for group in groups %}{% for item in group %}
+          <div class="snacks-candy-item" data-choice>
+            <h4 class="snacks-candy-name">{{ item.label | upper }}</h4>
+            {% if item.image_data %}
+              <img src="{{ url_for('main.food_image', food_id=item.id) }}" alt="{{ item.name }}" loading="lazy">
+            {% endif %}
+            <div class="snacks-candy-price">
+              {{ price_and_quantity('food', item, item.available) }}
+            </div>
+          </div>
+          {% endfor %}{% endfor %}
+        </div>
+      </section>
+
+    {% else %}
+      {# Other categories: one panel per group (e.g. Drink: Small / Medium / Large) #}
+      {% for group in groups %}
+        {% set with_image = group | selectattr('image_data') | first %}
+        <section class="snacks-product">
+          <h3 class="snacks-product-title">
+            {{ (category.title if groups | length == 1 else group[0].group) | upper }}
+          </h3>
+          <div class="snacks-product-panel">
+            {{ photo(url_for('main.food_image', food_id=with_image.id) if with_image else none, group[0].group) }}
+            <div class="snacks-options">
+              {% for item in group %}
+              <div class="snacks-option" data-choice>
+                <div class="snacks-option-name">{{ item.label | upper }}</div>
+                <div class="snacks-option-detail">{{ item.detail or item.description }}</div>
+                {{ price_and_quantity('food', item, item.available) }}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endfor %}
+    {% endif %}
+
+  {% else %}
+    <p class="empty">The menu is empty right now.</p>
+  {% endfor %}
+
+  {# ---------- Combos: food only, cheaper together ---------- #}
+  {% if combos %}
+  <section class="snacks-combo-group">
+    <div class="snacks-intro snacks-combo-intro">
+      <h2>MAKE IT A COMBO...</h2>
+      <span class="snacks-intro-line"></span>
+    </div>
+    {% for group in combos %}
+      {% set with_image = group | selectattr('image_data') | first %}
+      <section class="snacks-product">
+        <h3 class="snacks-product-title snacks-combo-title">{{ group[0].group | upper }}</h3>
+        <div class="snacks-product-panel">
+          {{ photo(url_for('main.package_image', package_id=with_image.id) if with_image else none, group[0].group) }}
+          <div class="snacks-options">
+            {% for package in group %}
+            <div class="snacks-option" data-choice>
+              <div class="snacks-option-name">{{ (package.label if group | length > 1 else 'Combo') | upper }}</div>
+              <div class="snacks-option-detail">{{ package.contents }}</div>
+              {% if package.food_value > package.price %}
+              <div class="snacks-option-detail snacks-saving-small">
+                Save €{{ "%.2f" | format(package.food_value - package.price) }}
+              </div>
+              {% endif %}
+              {{ price_and_quantity('package', package, package.is_available) }}
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {# ---------- Deals: tickets + food ---------- #}
+  {% if deals %}
+  <section class="snacks-deals-section">
+    <div class="snacks-intro snacks-deals-intro">
+      <h2>...OR GET A DEAL!</h2>
+      <span class="snacks-intro-line"></span>
+    </div>
+    <div class="snacks-deals-grid">
+      {% for deal in deals %}
+      <section class="snacks-product snacks-deal" data-choice>
+        <h3 class="snacks-product-title snacks-deal-title">{{ deal.name | upper }}</h3>
+        <div class="snacks-deal-panel">
+          <div class="snacks-deal-photo">
+            {% if deal.image_data %}
+              <img src="{{ url_for('main.package_image', package_id=deal.id) }}" alt="{{ deal.name }}" loading="lazy">
+            {% endif %}
+          </div>
+          <div class="snacks-deal-info">
+            <div class="snacks-deal-contents">
+              <p><strong>{{ deal.ticket_quantity }} movie ticket{{ 's' if deal.ticket_quantity != 1 }}</strong></p>
+              {% for line in deal.items %}
+                <p>{{ line.quantity }} × {{ line.food_item.name }}</p>
+              {% endfor %}
+            </div>
+            <div class="snacks-deal-pricing">
+              {% if interactive %}
+                {# The normal price depends on the ticket price of this showtime #}
+                {% set normal = deal.normal_price(price_per_seat) %}
+                {% if normal > deal.price %}
+                  <span class="snacks-deal-original">€{{ "%.2f" | format(normal) }}</span>
+                {% endif %}
+              {% endif %}
+              <div class="snacks-deal-price">
+                {{ price_and_quantity('package', deal, deal.is_available, deal.ticket_quantity) }}
+              </div>
+              {% if interactive and normal > deal.price %}
+                <span class="snacks-deal-saving">SAVE €{{ "%.2f" | format(normal - deal.price) }}</span>
+              {% elif not interactive %}
+                <span class="snacks-deal-saving">TICKETS INCLUDED</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>

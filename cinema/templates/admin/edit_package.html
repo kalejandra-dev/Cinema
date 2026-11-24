@@ -3,7 +3,7 @@
 {% block content %}
 <section class="form-card">
   <h1>Edit package</h1>
-  <form action="{{ url_for('admin.edit_package_post', package_id=package.id) }}" method="post">
+  <form action="{{ url_for('admin.edit_package_post', package_id=package.id) }}" method="post" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     {% include "admin/_package_fields.html" %}
     <label class="checkbox">
