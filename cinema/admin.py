@@ -4,10 +4,27 @@ from decimal import Decimal, InvalidOperation
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 
 from . import db
-from .model import Movie, Screen, Showtime, FoodItem, Package, PackageItem
+from .model import Movie, Screen, Showtime, FoodItem, FoodCategory, Package, PackageItem
 from .auth import admin_required
 
 bp = Blueprint("admin", __name__)
+
+
+def read_image(field, max_size):
+    """Read an optional uploaded image from request.files (like the profile picture in lab 5).
+
+    Returns (data, mime_type, error): (None, None, None) if no file was chosen,
+    or (None, None, "message") if the file is not valid.
+    """
+    upload = request.files.get(field)
+    if not upload or not upload.filename:
+        return None, None, None
+    data = upload.read()
+    if len(data) > max_size:
+        return None, None, f"The image is too big (max {max_size // (1024 * 1024)} MiB)."
+    if not upload.content_type.startswith("image/"):
+        return None, None, "The file must be an image."
+    return data, upload.content_type, None
 
 # The blueprint is registered with url_prefix="/admin" in __init__.py,
 # so "/movies" here is /admin/movies in the browser.
@@ -34,12 +51,21 @@ def new_movie():
         flash("A title and a valid duration are required.")
         return redirect(url_for("admin.manage_movies"))
 
+    release_date = None
+    if request.form.get("release_date"):
+        try:
+            release_date = datetime.date.fromisoformat(request.form["release_date"])
+        except ValueError:
+            flash("The release date is not valid.")
+            return redirect(url_for("admin.manage_movies"))
+
     movie = Movie(
         title=title,
         genre=request.form.get("genre", "").strip(),
         duration=duration,
         age_rating=request.form.get("age_rating", ""),
         synopsis=request.form.get("synopsis", "").strip(),
+        release_date=release_date,
     )
 
     # Optional poster, stored in the database (like the profile picture in lab 5)
@@ -153,22 +179,26 @@ def delete_showtime(showtime_id):
 @bp.route("/food")
 @admin_required
 def manage_food():
-    food = db.session.scalars(db.select(FoodItem).order_by(FoodItem.name)).all()
-    return render_template("admin/manage_food.html", food=food)
+    food = db.session.scalars(
+        db.select(FoodItem).order_by(FoodItem.category, FoodItem.name)
+    ).all()
+    return render_template("admin/manage_food.html", food=food, categories=FoodCategory)
 
 def read_food_form(form):
     """Read and check the fields of the food forms (new and edit).
 
-    Returns (name, description, price), or None if something is not valid.
+    Returns (name, description, category, detail, price), or None if something is not valid.
     """
     name = form.get("name", "").strip()
     try:
         price = Decimal(form.get("price", ""))
-    except InvalidOperation:
+        category = FoodCategory[form.get("category", "")]
+    except (InvalidOperation, KeyError):
         return None
     if not name or not price.is_finite() or price < 0:
         return None
-    return name, form.get("description", "").strip(), price
+    return (name, form.get("description", "").strip(), category,
+            form.get("detail", "").strip(), price)
 
 
 @bp.route("/food/new", methods=["POST"])
@@ -176,15 +206,23 @@ def read_food_form(form):
 def new_food():
     data = read_food_form(request.form)
     if data is None:
-        flash("A name and a valid price are required.")
+        flash("A name, a category and a valid price are required.")
         return redirect(url_for("admin.manage_food"))
-    name, description, price = data
+    image_data, image_mime_type, error = read_image("image", FoodItem.MAX_IMAGE_SIZE)
+    if error:
+        flash(error)
+        return redirect(url_for("admin.manage_food"))
+    name, description, category, detail, price = data
 
     db.session.add(FoodItem(
         name=name,
         description=description,
+        category=category,
+        detail=detail,
         price=price,
         available="available" in request.form,  # unchecked checkboxes are not sent
+        image_data=image_data,
+        image_mime_type=image_mime_type,
     ))
     db.session.commit()
     flash(f"'{name}' added.")
@@ -195,7 +233,7 @@ def new_food():
 @admin_required
 def edit_food(food_id):
     item = db.get_or_404(FoodItem, food_id)
-    return render_template("admin/edit_food.html", item=item)
+    return render_template("admin/edit_food.html", item=item, categories=FoodCategory)
 
 
 @bp.route("/food/<int:food_id>/edit", methods=["POST"])
@@ -204,12 +242,18 @@ def edit_food_post(food_id):
     item = db.get_or_404(FoodItem, food_id)
     data = read_food_form(request.form)
     if data is None:
-        flash("A name and a valid price are required.")
+        flash("A name, a category and a valid price are required.")
+        return redirect(url_for("admin.edit_food", food_id=item.id))
+    image_data, image_mime_type, error = read_image("image", FoodItem.MAX_IMAGE_SIZE)
+    if error:
+        flash(error)
         return redirect(url_for("admin.edit_food", food_id=item.id))
 
     # Bookings already made keep the price they paid (BookingItem.price)
-    item.name, item.description, item.price = data
+    item.name, item.description, item.category, item.detail, item.price = data
     item.available = "available" in request.form
+    if image_data:                      # a new image replaces the old one
+        item.image_data, item.image_mime_type = image_data, image_mime_type
     db.session.commit()
     flash(f"'{item.name}' updated.")
     return redirect(url_for("admin.manage_food"))
@@ -256,7 +300,8 @@ def read_package_form(form, food):
         price = Decimal(form.get("price", ""))
     except (ValueError, InvalidOperation):
         return None
-    if (not name or not 1 <= ticket_quantity <= MAX_PACKAGE_TICKETS
+    # 0 tickets: a combo (only food). 1 or more: a deal (tickets + food)
+    if (not name or not 0 <= ticket_quantity <= MAX_PACKAGE_TICKETS
             or not price.is_finite() or price < 0):
         return None
 
@@ -293,12 +338,17 @@ def manage_packages():
 def new_package():
     data = read_package_form(request.form, all_food())
     if data is None:
-        flash("A name, 1 to 10 tickets, a valid price and at least one food item are required.")
+        flash("A name, 0 to 10 tickets, a valid price and at least one food item are required.")
+        return redirect(url_for("admin.manage_packages"))
+    image_data, image_mime_type, error = read_image("image", FoodItem.MAX_IMAGE_SIZE)
+    if error:
+        flash(error)
         return redirect(url_for("admin.manage_packages"))
     name, description, ticket_quantity, price, contents = data
 
     package = Package(name=name, description=description,
-                      ticket_quantity=ticket_quantity, price=price)
+                      ticket_quantity=ticket_quantity, price=price,
+                      image_data=image_data, image_mime_type=image_mime_type)
     for item, quantity in contents:
         package.items.append(PackageItem(food_item=item, quantity=quantity))
     db.session.add(package)
@@ -323,10 +373,16 @@ def edit_package_post(package_id):
     package = db.get_or_404(Package, package_id)
     data = read_package_form(request.form, all_food())
     if data is None:
-        flash("A name, 1 to 10 tickets, a valid price and at least one food item are required.")
+        flash("A name, 0 to 10 tickets, a valid price and at least one food item are required.")
+        return redirect(url_for("admin.edit_package", package_id=package.id))
+    image_data, image_mime_type, error = read_image("image", FoodItem.MAX_IMAGE_SIZE)
+    if error:
+        flash(error)
         return redirect(url_for("admin.edit_package", package_id=package.id))
     package.name, package.description, package.ticket_quantity, package.price, contents = data
     package.available = "available" in request.form
+    if image_data:                      # a new image replaces the old one
+        package.image_data, package.image_mime_type = image_data, image_mime_type
 
     # Update the food of the package: change quantities, add new items, remove the rest
     new_quantities = {item.id: quantity for item, quantity in contents}

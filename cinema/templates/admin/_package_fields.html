@@ -4,12 +4,15 @@
 <input id="name" name="name" type="text" value="{{ package.name if package }}" required>
 <label for="description">Description</label>
 <textarea id="description" name="description" rows="2">{{ package.description if package }}</textarea>
-<label for="ticket_quantity">Tickets included</label>
-<input id="ticket_quantity" name="ticket_quantity" type="number" min="1" max="10"
+<label for="ticket_quantity">Tickets included (0 = combo, only food · 1 or more = deal)</label>
+<input id="ticket_quantity" name="ticket_quantity" type="number" min="0" max="10"
        value="{{ package.ticket_quantity if package else 1 }}" required>
 <label for="price">Package price (€)</label>
 <input id="price" name="price" type="number" step="0.01" min="0"
        value="{{ package.price if package }}" required>
+
+<label for="image">Image (optional, max 2 MiB){% if package and package.image_data %} · it has one now{% endif %}</label>
+<input id="image" name="image" type="file" accept="image/*">
 
 <p class="field-title">Food &amp; drinks included</p>
 {% if food %}

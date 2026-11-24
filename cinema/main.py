@@ -1,5 +1,6 @@
 import datetime
 from decimal import Decimal
+from itertools import groupby
 
 import flask_login
 from flask import (
@@ -14,14 +15,12 @@ from .auth import customer_required
 from .mail import send_booking_confirmation
 from .model import (
     Movie, Showtime, Booking, BookedSeat, BookingItem, BookingPackage,
-    FoodItem, Package, TicketPrice,
+    FoodItem, FoodCategory, Package, TicketPrice,
 )
 
 bp = Blueprint("main", __name__)
 MAX_QUANTITY = 10       # per food item or package in a booking (max="10" in the templates)
-DAYS_AHEAD = 14          # the billboard shows showtimes from now to 7 days ahead
-COMING_SOON_TITLES = ("Avengers: Doomsday", "Dune: Part Three")
-COMING_SOON_START = datetime.date(2026, 12, 18)
+DAYS_AHEAD = 14         # the billboard shows showtimes from now to 14 days ahead
 
 
 def not_started():
@@ -39,9 +38,16 @@ def upcoming():
     return and_(not_started(), Showtime.date <= last_day)
 
 def movie_showtime_filter(movie):
-    if movie.title in COMING_SOON_TITLES:
+    """Coming soon movies show all their showtimes (pre-sale), the rest only DAYS_AHEAD."""
+    if movie.is_coming_soon:
         return not_started()
     return upcoming()
+
+
+def released():
+    """SQL condition for movies that are not "coming soon" (already released)."""
+    return or_(Movie.release_date == None,  # noqa: E711
+               Movie.release_date <= datetime.date.today())
 
 def has_started(showtime):
     return datetime.datetime.combine(showtime.date, showtime.time) <= datetime.datetime.now()
@@ -95,6 +101,29 @@ def available_food():
     ).all()
 
 
+def snack_menu(food, packages):
+    """Organise the menu for the templates, from the database.
+
+    sections: [(FoodCategory, [[items of a group], ...]), ...] in category order,
+              e.g. (drinks, [[Drink - Small, Drink - Medium, Drink - Large]])
+    combos:   [[packages of a group], ...]  packages without tickets
+    deals:    [package, ...]                packages with tickets
+    """
+    food = sorted(food, key=lambda item: (item.category.value, item.group, item.price))
+    sections = []
+    for category, items in groupby(food, key=lambda item: item.category):
+        groups = [list(group) for _, group in groupby(items, key=lambda item: item.group)]
+        sections.append((category, groups))
+
+    # Combos keep the order in which they were created, grouped by name ("Popcorn Combo - Small"...)
+    combo_groups = {}
+    for package in sorted((p for p in packages if not p.is_deal), key=lambda p: p.id):
+        combo_groups.setdefault(package.group, []).append(package)
+    combo_groups = [sorted(group, key=lambda p: p.price) for group in combo_groups.values()]
+    deals = sorted((p for p in packages if p.is_deal), key=lambda p: p.price)
+    return sections, combo_groups, deals
+
+
 def get_snack_cart(showtime_id, seats):
     """Retrieve the current user's cart for these seats and showtime."""
     cart = session.get("snack_cart") or {}
@@ -141,13 +170,8 @@ def showtime_started(showtime):
 def index():
     showing = db.select(Showtime.movie_id).where(upcoming())
 
-    query = db.select(Movie).where(Movie.id.in_(showing))
-
-    #We want to keep the unreleased films on the coming soon page
-    if datetime.date.today() < COMING_SOON_START:
-        query = query.where(
-            ~Movie.title.in_(COMING_SOON_TITLES)
-        )
+    # Unreleased movies are only in the "Coming soon" page
+    query = db.select(Movie).where(Movie.id.in_(showing)).where(released())
 
     movies = db.session.scalars(
         query.order_by(Movie.title)
@@ -196,28 +220,40 @@ def whats_on():
 
 @bp.route("/coming-soon")
 def coming_soon():
-    """Show only the two upcoming releases."""
-    movies_found = db.session.scalars(
-        db.select(Movie).where(Movie.title.in_(COMING_SOON_TITLES))
-    ).all()
-
-    by_title = {movie.title: movie for movie in movies_found}
-    movies = [
-        by_title[title]
-        for title in COMING_SOON_TITLES
-        if title in by_title
-    ]
-
-    return render_template(
-        "main/coming_soon.html",
-        movies=movies,
-        release_date=COMING_SOON_START,
+    """Movies whose release date is in the future."""
+    query = (
+        db.select(Movie)
+        .where(Movie.release_date > datetime.date.today())
+        .order_by(Movie.release_date, Movie.title)
     )
+    movies = db.session.scalars(query).all()
+    return render_template("main/coming_soon.html", movies=movies)
+
 
 @bp.route("/snacks")
 def snacks():
-    return render_template("main/snacks.html")
+    """Public snacks menu (prices only, booking happens in booking_snacks)."""
+    food = db.session.scalars(db.select(FoodItem)).all()
+    packages = db.session.scalars(db.select(Package)).all()
+    sections, combos, deals = snack_menu(food, packages)
+    return render_template("main/snacks.html",
+                           sections=sections, combos=combos, deals=deals)
 
+
+@bp.route("/food/<int:food_id>/image")
+def food_image(food_id):
+    item = db.get_or_404(FoodItem, food_id)
+    if not item.image_data:
+        abort(404, f"Food item {food_id} does not have an image")
+    return item.image_data, 200, {"Content-Type": item.image_mime_type}
+
+
+@bp.route("/package/<int:package_id>/image")
+def package_image(package_id):
+    package = db.get_or_404(Package, package_id)
+    if not package.image_data:
+        abort(404, f"Package {package_id} does not have an image")
+    return package.image_data, 200, {"Content-Type": package.image_mime_type}
 
 
 def day_label(day):
@@ -470,6 +506,17 @@ def booking_snacks(showtime_id):
                 showtime_id=showtime.id,
                 seats=seats,
             ))
+        # Deals include tickets: they can't include more tickets than seats chosen
+        package_tickets = sum(package.ticket_quantity * quantity
+                              for package, quantity in chosen_packages)
+        if package_tickets > len(seats):
+            flash(f"Your deals include {package_tickets} tickets, but you chose "
+                  f"{len(seats)} seat{'s' if len(seats) != 1 else ''}.")
+            return redirect(url_for(
+                "main.booking_snacks",
+                showtime_id=showtime.id,
+                seats=seats,
+            ))
 
         # Save only IDs and quantities, never prices
         session["snack_cart"] = {
@@ -494,13 +541,16 @@ def booking_snacks(showtime_id):
         ))
 
     # GET: display the interactive menu
+    sections, combos, deals = snack_menu(food, packages)
     return render_template(
         "main/booking_snacks.html",
         showtime=showtime,
         seats=seats,
-        food=food,
-        packages=packages,
+        sections=sections,
+        combos=combos,
+        deals=deals,
         cart=get_snack_cart(showtime.id, seats),
+        price_per_seat=ticket_price_for(showtime),
     )
 
 
@@ -532,8 +582,8 @@ def confirm_booking(showtime_id):
     package_tickets = sum(package.ticket_quantity * quantity
                           for package, quantity in chosen_packages)
     if package_tickets > len(seats):
-        flash(f"Your packages include {package_tickets} tickets, "
-              f"but you chose {len(seats)} seats.")
+        flash(f"Your packages include {package_tickets} tickets, but you chose "
+              f"{len(seats)} seat{'s' if len(seats) != 1 else ''}.")
         return redirect(back_to_food)
 
     price_per_seat = ticket_price_for(showtime)
@@ -574,7 +624,7 @@ def confirm_booking(showtime_id):
         db.session.rollback()
         flash("Sorry, one of those seats was just taken. Please choose again.")
         return redirect(url_for("main.booking", showtime_id=showtime.id))
-        # The booking is saved, so clear the temporary snack cart
+    # The booking is saved, so clear the temporary snack cart
     session.pop("snack_cart", None)
     flash("Booking confirmed. Enjoy the movie!")
     email_sent = send_booking_confirmation(new_booking)

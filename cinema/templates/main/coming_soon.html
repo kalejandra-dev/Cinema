@@ -28,7 +28,7 @@
       </p>
 
       <p class="meta">
-        <strong>Premieres December 18</strong>
+        <strong>Premieres {{ movie.release_date.strftime('%A %d %B') }}</strong>
       </p>
 
       <p>{{ movie.synopsis }}</p>
@@ -42,7 +42,7 @@
   </article>
   {% else %}
   <p class="empty">
-    The upcoming movies haven't been added to this database yet.
+    There are no upcoming releases right now.
   </p>
   {% endfor %}
 </div>

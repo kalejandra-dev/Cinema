@@ -759,7 +759,7 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
             rgba(8, 9, 14, 0.70) 43%,
             rgba(8, 9, 14, 0.10) 100%
         ),
-        url("hero/welcome.jpg.jpg");
+        url("hero/welcome.jpg");
 
     background-size: cover;
     background-position: center;
@@ -774,7 +774,7 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
             rgba(8, 9, 14, 0.65) 48%,
             rgba(8, 9, 14, 0.10) 100%
         ),
-        url("hero/coming-soon.jpg.jpg");
+        url("hero/coming-soon.jpg");
 
     background-size: cover;
     background-position: center;
@@ -789,7 +789,7 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
             rgba(8, 9, 14, 0.67) 45%,
             rgba(8, 9, 14, 0.12) 100%
         ),
-        url("hero/this-week.jpg.jpg");
+        url("hero/this-week.jpg");
 
     background-size: cover;
     background-position: center;
@@ -804,7 +804,7 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
             rgba(8, 9, 14, 0.68) 45%,
             rgba(8, 9, 14, 0.10) 100%
         ),
-        url("hero/snacks.jpg.jpg");
+        url("hero/snacks.jpg");
 
     background-size: cover;
     background-position: center;
@@ -1922,3 +1922,82 @@ label.checkbox { display: flex; align-items: center; gap: .6rem; color: var(--te
     }
 }
 
+
+/* ===================== Snacks menu from the database ===================== */
+
+/* "− n +" quantity selector (booking snacks menu, see snack_menu.js) */
+.qty-stepper {
+  display: inline-flex;
+  align-items: center;
+  margin-top: .6rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 99px;
+  background: #fff;
+  overflow: hidden;
+}
+.qty-btn {
+  width: 38px;
+  height: 38px;
+  border: none;
+  background: transparent;
+  color: #171717;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease;
+}
+.qty-btn:hover,
+.qty-btn:focus-visible { background: var(--accent); color: #fff; }
+/* .qty-stepper in front so it wins over the general input styles */
+.qty-stepper .qty-input {
+  width: 2.6rem;
+  min-width: 0;
+  height: 38px;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #171717;
+  font: 700 1rem "Inter", sans-serif;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Product with some quantity chosen */
+[data-choice].is-selected { background: rgba(237, 56, 76, .08); }
+[data-choice].is-selected .qty-stepper { border-color: var(--accent); }
+
+.snacks-sold-out { color: #9a9aa3; font-size: 1.3rem; }
+.snacks-saving-small { color: var(--accent); font-weight: 700; }
+.snacks-menu-note { margin: 2rem 0 0; text-align: center; color: var(--muted); }
+.snacks-optional-note { margin-top: 16px; }
+
+/* Bar with the number of items and the total, always visible while choosing */
+.snacks-cart-bar {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin: 2rem 0;
+  padding: 1rem 1.4rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(15, 16, 24, .92);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
+  color: #fff;
+}
+.snacks-cart-bar > div { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.4rem; }
+.snacks-cart-bar .warning { flex-basis: 100%; margin: 0; }
+.snacks-cart-total strong { color: var(--accent); font-size: 1.2rem; }

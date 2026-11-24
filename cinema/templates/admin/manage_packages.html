@@ -6,11 +6,12 @@
   <section class="panel">
     <h2>Packages</h2>
     <table class="table">
-      <thead><tr><th>Name</th><th>Contents</th><th>Price</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Type</th><th>Contents</th><th>Price</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for p in packages %}
         <tr>
           <td>{{ p.name }}</td>
+          <td>{{ "Deal" if p.is_deal else "Combo" }}</td>
           <td>{{ p.contents }}</td>
           <td>{{ "%.2f"|format(p.price) }} €</td>
           <td>
@@ -32,7 +33,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="empty">No packages yet.</td></tr>
+        <tr><td colspan="6" class="empty">No packages yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -40,7 +41,7 @@
 
   <section class="panel">
     <h2>Add package</h2>
-    <form action="{{ url_for('admin.new_package') }}" method="post">
+    <form action="{{ url_for('admin.new_package') }}" method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% include "admin/_package_fields.html" %}
       <button type="submit" class="btn btn-block">Save</button>

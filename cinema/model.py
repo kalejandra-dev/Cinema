@@ -35,10 +35,16 @@ class Movie(db.Model):
 
     genre: Mapped[str] = mapped_column(String(100))
 
-    #I am not sure if i should keep this attribute
+    # Premiere date. If it is in the future, the movie is shown in "Coming soon"
+    release_date: Mapped[Optional[datetime.date]] = mapped_column()
+
     showtimes: Mapped[list["Showtime"]] = relationship(
         back_populates="movie"
     )
+
+    @property
+    def is_coming_soon(self):
+        return self.release_date is not None and self.release_date > datetime.date.today()
 
 class Screen(db.Model):
 
@@ -208,20 +214,66 @@ class BookedSeat(db.Model):
         return f"{self.seat_row}{self.seat_number}"
 
 
+def name_group(name):
+    """'Drink - Small' -> 'Drink'. Items with the same group are shown together."""
+    return name.split(" - ", 1)[0]
+
+
+def name_label(name):
+    """'Drink - Small' -> 'Small'. The short name shown inside its group."""
+    return name.split(" - ", 1)[-1]
+
+
+class FoodCategory(enum.Enum):
+    """Sections of the snacks menu, in the order they are shown."""
+    drinks = 1
+    popcorn = 2
+    nachos = 3
+    hot_dogs = 4
+    sweets = 5
+    other = 6
+
+    @property
+    def title(self):
+        return self.name.replace("_", " ").title()   # hot_dogs -> 'Hot Dogs'
+
+
 class FoodItem(db.Model):
     __tablename__ = "food_item"
+    MAX_IMAGE_SIZE = 2 * 1024 * 1024  # maximum image size: 2 MiB
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    # Names like "Drink - Small": "Drink" groups the sizes, "Small" is shown in the menu
     name: Mapped[str] = mapped_column(String(100))
 
     description: Mapped[str] = mapped_column(String(500))
+
+    category: Mapped[FoodCategory] = mapped_column(
+        Enum(FoodCategory), default=FoodCategory.other
+    )
+
+    detail: Mapped[str] = mapped_column(String(100), default="")   # e.g. "750 ml"
 
     price: Mapped[Decimal] = mapped_column(
         Numeric(10,2)
     )
 
     available: Mapped[bool] = mapped_column(default=True)
+
+    image_mime_type: Mapped[Optional[str]] = mapped_column(String(128))
+
+    image_data: Mapped[Optional[bytes]] = mapped_column(
+        LargeBinary(MAX_IMAGE_SIZE)
+    )
+
+    @property
+    def group(self):
+        return name_group(self.name)
+
+    @property
+    def label(self):
+        return name_label(self.name)
 
     package_items: Mapped[list["PackageItem"]] = relationship(
         back_populates = "food_item"
@@ -250,6 +302,12 @@ class Package(db.Model):
 
     available: Mapped[bool] = mapped_column(default=True)
 
+    image_mime_type: Mapped[Optional[str]] = mapped_column(String(128))
+
+    image_data: Mapped[Optional[bytes]] = mapped_column(
+        LargeBinary(FoodItem.MAX_IMAGE_SIZE)
+    )
+
     # delete-orphan: removing a PackageItem from package.items deletes its row
     items: Mapped[list["PackageItem"]] = relationship(
         back_populates="package",
@@ -266,10 +324,34 @@ class Package(db.Model):
         return self.available and all(item.food_item.available for item in self.items)
 
     @property
+    def group(self):
+        return name_group(self.name)
+
+    @property
+    def label(self):
+        return name_label(self.name)
+
+    @property
+    def is_deal(self):
+        """Deals include tickets; combos (0 tickets) are only food, cheaper together."""
+        return self.ticket_quantity > 0
+
+    @property
+    def food_value(self):
+        """What its food would cost bought item by item."""
+        return sum((item.food_item.price * item.quantity for item in self.items), Decimal("0"))
+
+    def normal_price(self, ticket_price):
+        """What everything in the package would cost separately, with that ticket price."""
+        return self.food_value + ticket_price * self.ticket_quantity
+
+    @property
     def contents(self):
         """Text like '2 tickets + 1 × Popcorn, 2 × Soda'."""
-        tickets = f"{self.ticket_quantity} ticket{'s' if self.ticket_quantity != 1 else ''}"
         food = ", ".join(f"{item.quantity} × {item.food_item.name}" for item in self.items)
+        if not self.is_deal:
+            return food
+        tickets = f"{self.ticket_quantity} ticket{'s' if self.ticket_quantity != 1 else ''}"
         return f"{tickets} + {food}" if food else tickets
 
 

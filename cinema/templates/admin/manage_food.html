@@ -6,13 +6,15 @@
   <section class="panel">
     <h2>Items</h2>
     <table class="table">
-      <thead><tr><th>Name</th><th>Description</th><th>Price</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Category</th><th>Detail</th><th>Price</th><th>Image</th><th>Status</th><th></th></tr></thead>
       <tbody>
         {% for item in food %}
         <tr>
           <td>{{ item.name }}</td>
-          <td>{{ item.description }}</td>
+          <td>{{ item.category.title }}</td>
+          <td>{{ item.detail }}</td>
           <td>{{ "%.2f"|format(item.price) }} €</td>
+          <td>{{ "Yes" if item.image_data else "No" }}</td>
           <td>
             {% if item.available %}<span class="tag tag-ok">Available</span>
             {% else %}<span class="tag tag-off">Sold out</span>{% endif %}
@@ -33,7 +35,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="5" class="empty">No items yet.</td></tr>
+        <tr><td colspan="7" class="empty">No items yet.</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -41,12 +43,22 @@
 
   <section class="panel">
     <h2>Add item</h2>
-    <form action="{{ url_for('admin.new_food') }}" method="post">
+    <form action="{{ url_for('admin.new_food') }}" method="post" enctype="multipart/form-data">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <label for="name">Name</label>
       <input id="name" name="name" type="text" required>
       <label for="description">Description</label>
       <textarea id="description" name="description" rows="3"></textarea>
+      <label for="category">Category</label>
+      <select id="category" name="category" required>
+        {% for category in categories %}
+        <option value="{{ category.name }}">{{ category.title }}</option>
+        {% endfor %}
+      </select>
+      <label for="detail">Detail (size, volume...)</label>
+      <input id="detail" name="detail" type="text" placeholder="750 ml">
+      <label for="image">Image (optional, max 2 MiB)</label>
+      <input id="image" name="image" type="file" accept="image/*">
       <label for="price">Price (€)</label>
       <input id="price" name="price" type="number" step="0.01" min="0" required>
       <label class="checkbox"><input type="checkbox" name="available" checked> Available</label>
