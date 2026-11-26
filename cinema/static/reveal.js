@@ -10,10 +10,14 @@
     );
     document.documentElement.classList.add("js-reveal");
 
+    function show(item) {
+        item.classList.add("is-visible");
+    }
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
             if (entry.isIntersecting) {
-                entry.target.classList.add("is-visible");
+                show(entry.target);
                 observer.unobserve(entry.target);   // animate only once
             }
         });
@@ -24,4 +28,16 @@
         item.style.transitionDelay = `${(i % 4) * 70}ms`;
         observer.observe(item);
     });
+
+    // Safety net: some browsers (e.g. Firefox in the lab virtual desktop) never
+    // report the items as visible, and they would stay hidden forever.
+    // After a moment, show everything that is still hidden.
+    window.setTimeout(() => {
+        items.forEach((item) => {
+            if (!item.classList.contains("is-visible")) {
+                show(item);
+                observer.unobserve(item);
+            }
+        });
+    }, 1000);
 })();
